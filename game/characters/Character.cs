@@ -18,6 +18,14 @@ public partial class Character : CharacterBody2D
     /// <summary>The character scene; the source of the feet radius for tools that bake navigation.</summary>
     public const string ScenePath = "res://characters/Character.tscn";
 
+    /// <summary>
+    /// Avoidance priorities. An agent ignores agents of lower priority, so idle characters (higher) never step aside
+    /// and moving ones steer around them, while moving characters share the avoiding between themselves.
+    /// </summary>
+    private const float IdleAvoidancePriority = 1f;
+
+    private const float MovingAvoidancePriority = 0.5f;
+
     private Sprite2D _selectionRing = null!;
     private NavigationAgent2D _agent = null!;
 
@@ -52,7 +60,13 @@ public partial class Character : CharacterBody2D
         _selectionRing = GetNode<Sprite2D>("SelectionRing");
         _agent = GetNode<NavigationAgent2D>("NavigationAgent2D");
         _agent.Radius = FeetRadius;
+        _agent.AvoidanceEnabled = true;
+        _agent.AvoidancePriority = IdleAvoidancePriority;
+        _agent.VelocityComputed += OnVelocityComputed;
     }
+
+    /// <summary>True while the navigation agent steers around other characters. Bodies never collide with each other.</summary>
+    public bool AvoidanceEnabled => _agent.AvoidanceEnabled;
 
     /// <summary>Shows or hides the ring under the character's feet.</summary>
     public bool SelectionRingVisible
@@ -68,6 +82,8 @@ public partial class Character : CharacterBody2D
     public void MoveTo(Vector2 globalPosition)
     {
         _agent.TargetPosition = globalPosition;
+        _agent.MaxSpeed = SpeedPixelsPerSecond;
+        _agent.AvoidancePriority = MovingAvoidancePriority;
         IsMoving = true;
     }
 
@@ -81,13 +97,31 @@ public partial class Character : CharacterBody2D
 
         if (_agent.IsNavigationFinished())
         {
-            IsMoving = false;
-            Velocity = Vector2.Zero;
+            Stop();
             return;
         }
 
+        // Avoidance turns this into a safe velocity and hands it back through VelocityComputed, which moves the body.
         Vector2 next = _agent.GetNextPathPosition();
-        Velocity = GlobalPosition.DirectionTo(next) * SpeedPixelsPerSecond;
+        _agent.Velocity = GlobalPosition.DirectionTo(next) * SpeedPixelsPerSecond;
+    }
+
+    private void OnVelocityComputed(Vector2 safeVelocity)
+    {
+        if (!IsMoving)
+        {
+            return;
+        }
+
+        Velocity = safeVelocity;
         MoveAndSlide();
+    }
+
+    private void Stop()
+    {
+        IsMoving = false;
+        Velocity = Vector2.Zero;
+        _agent.Velocity = Vector2.Zero;
+        _agent.AvoidancePriority = IdleAvoidancePriority;
     }
 }

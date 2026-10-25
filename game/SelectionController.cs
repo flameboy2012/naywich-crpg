@@ -41,7 +41,7 @@ public partial class SelectionController : Node
             ? new ClickTarget.PartyMember(hit.PartyMemberId, hit.GlobalPosition.ToWorldPosition())
             : new ClickTarget.Ground(world.ToWorldPosition());
 
-        ClickResult result = _model.Click(new ClickEvent(button.Value, target));
+        ClickResult result = _model.Click(new ClickEvent(button.Value, target) { PartyMemberPositions = Positions(partyMembers) });
         Apply(result, partyMembers);
         GetViewport().SetInputAsHandled();
     }
@@ -49,6 +49,10 @@ public partial class SelectionController : Node
     private Dictionary<PartyMemberId, PlayerControl> PartyMembers() =>
         GetTree().GetNodesInGroup(PlayerControl.PartyMembersGroup).OfType<PlayerControl>()
             .ToDictionary(partyMember => partyMember.PartyMemberId);
+
+    /// <summary>Where each party member stands now, for the model to give the selection their spread slots.</summary>
+    private static Dictionary<PartyMemberId, WorldPosition> Positions(Dictionary<PartyMemberId, PlayerControl> partyMembers) =>
+        partyMembers.ToDictionary(entry => entry.Key, entry => entry.Value.GlobalPosition.ToWorldPosition());
 
     /// <summary>The party member whose click area contains the world point, if any.</summary>
     private PlayerControl? PartyMemberAt(Vector2 world, IEnumerable<PlayerControl> partyMembers)

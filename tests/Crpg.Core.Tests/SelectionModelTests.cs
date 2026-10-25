@@ -18,6 +18,18 @@ public class SelectionModelTests
     private static ClickEvent RightClickOnGround(float x, float y) =>
         new(ClickButton.Right, new ClickTarget.Ground(new WorldPosition(x, y)));
 
+    private static ClickEvent RightClickOnGround(float x, float y, IReadOnlyDictionary<PartyMemberId, WorldPosition> standing) =>
+        new(ClickButton.Right, new ClickTarget.Ground(new WorldPosition(x, y))) { PartyMemberPositions = standing };
+
+    private static ClickEvent RightClickOn(
+        PartyMemberId partyMember, IReadOnlyDictionary<PartyMemberId, WorldPosition> standing) =>
+        new(ClickButton.Right, new ClickTarget.PartyMember(partyMember, standing[partyMember])) { PartyMemberPositions = standing };
+
+    /// <summary>Where each party member currently stands, as the right-click event carries it.</summary>
+    private static IReadOnlyDictionary<PartyMemberId, WorldPosition> Standing(
+        params (PartyMemberId Id, float X, float Y)[] partyMembers) =>
+        partyMembers.ToDictionary(p => p.Id, p => new WorldPosition(p.X, p.Y));
+
     [Fact]
     public void Left_click_on_a_party_member_selects_only_them()
     {
@@ -72,6 +84,17 @@ public class SelectionModelTests
         model.Click(LeftClickOn(Aldric));
 
         ClickResult result = model.Click(RightClickOnGround(300f, 120f));
+
+        Assert.Equal(new Order[] { new MoveOrder(Aldric, new WorldPosition(300f, 120f)) }, result.Orders);
+    }
+
+    [Fact]
+    public void A_single_selected_party_member_goes_exactly_to_the_clicked_point()
+    {
+        var model = new SelectionModel();
+        model.Click(LeftClickOn(Aldric));
+
+        ClickResult result = model.Click(RightClickOnGround(300f, 120f, Standing((Aldric, 250f, 90f), (Brenna, 310f, 125f))));
 
         Assert.Equal(new Order[] { new MoveOrder(Aldric, new WorldPosition(300f, 120f)) }, result.Orders);
     }

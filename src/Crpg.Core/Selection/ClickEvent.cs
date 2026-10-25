@@ -20,4 +20,14 @@ public abstract record ClickTarget
 }
 
 /// <summary>One mouse click, already resolved to a target by the game side.</summary>
-public readonly record struct ClickEvent(ClickButton Button, ClickTarget Target);
+public readonly record struct ClickEvent(ClickButton Button, ClickTarget Target)
+{
+    private static readonly IReadOnlyDictionary<PartyMemberId, WorldPosition> NobodyStanding =
+        new Dictionary<PartyMemberId, WorldPosition>();
+
+    /// <summary>
+    /// Where each party member currently stands. A right-click uses it to give the selection their spread slots;
+    /// a selected party member missing from it counts as standing at the clicked point.
+    /// </summary>
+    public IReadOnlyDictionary<PartyMemberId, WorldPosition> PartyMemberPositions { get; init; } = NobodyStanding;
+}
