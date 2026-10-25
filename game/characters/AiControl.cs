@@ -18,9 +18,6 @@ public partial class AiControl : Node
 {
     public const string EnemiesGroup = "enemies";
 
-    /// <summary>The awareness radius used when the character's stats are not a <see cref="Data.MonsterData"/>.</summary>
-    private const int DefaultAwarenessRadiusTiles = 8;
-
     private Character _character = null!;
 
     /// <summary>The enemy's identity in the selection model: the Character's node name, unique in its zone.</summary>
@@ -35,9 +32,14 @@ public partial class AiControl : Node
     /// </summary>
     public bool IsAware { get; private set; }
 
-    /// <summary>How far, in tiles, this enemy notices a party member: from its MonsterData.</summary>
+    /// <summary>
+    /// How far, in tiles, this enemy notices a party member: from its MonsterData, else
+    /// <see cref="CombatRules.DefaultAwarenessRadiusTiles"/>.
+    /// </summary>
     public int AwarenessRadiusTiles =>
-        _character.CharacterStats is Data.MonsterData monster ? monster.AwarenessRadiusTiles : DefaultAwarenessRadiusTiles;
+        _character.CharacterStats is Data.MonsterData monster
+            ? monster.AwarenessRadiusTiles
+            : CombatRules.DefaultAwarenessRadiusTiles;
 
     public override void _EnterTree()
     {

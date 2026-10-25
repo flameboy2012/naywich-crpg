@@ -15,6 +15,12 @@ public sealed class CombatRules(IDiceRoller dice)
     public const float NormalCombatSpeed = 1f;
 
     /// <summary>
+    /// The awareness radius, in tiles, of a character whose data doesn't set one: the default for every monster.
+    /// Provisional until the M2 play-test.
+    /// </summary>
+    public const int DefaultAwarenessRadiusTiles = 8;
+
+    /// <summary>
     /// Walking speed in world pixels per real second (ADR 0003): the speed in tiles per second times the grid-step
     /// length, scaled by the global combat speed like the attack cooldown.
     /// </summary>

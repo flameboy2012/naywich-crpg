@@ -1,3 +1,4 @@
+using Crpg.Core.Combat;
 using Godot;
 
 namespace Crpg.Data;
@@ -9,7 +10,9 @@ namespace Crpg.Data;
 [GlobalClass]
 public partial class MonsterData : CharacterStats
 {
-    /// <summary>How far, in tiles, the monster notices an enemy. Provisional until the M2 play-test.</summary>
+    /// <summary>
+    /// How far, in tiles, the monster notices an enemy. Defaults to <see cref="CombatRules.DefaultAwarenessRadiusTiles"/>.
+    /// </summary>
     [Export(PropertyHint.Range, "1,40,1,or_greater")]
-    public int AwarenessRadiusTiles { get; set; } = 8;
+    public int AwarenessRadiusTiles { get; set; } = CombatRules.DefaultAwarenessRadiusTiles;
 }
