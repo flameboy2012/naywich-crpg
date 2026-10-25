@@ -15,9 +15,9 @@ public sealed class SelectionModel
     private ImmutableHashSet<PartyMemberId> _selection = ImmutableHashSet<PartyMemberId>.Empty;
 
     /// <summary>A model for a party whose party members are given in portrait slot order: slot 1 first.</summary>
-    public SelectionModel(IReadOnlyList<PartyMemberId>? portraitSlots = null)
+    public SelectionModel(IReadOnlyList<PartyMemberId> portraitSlots)
     {
-        _portraitSlots = portraitSlots ?? Array.Empty<PartyMemberId>();
+        _portraitSlots = portraitSlots;
     }
 
     public IReadOnlySet<PartyMemberId> Selection => _selection;

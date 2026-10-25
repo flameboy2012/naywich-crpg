@@ -11,6 +11,9 @@ public class SelectionModelTests
     private static readonly PartyMemberId Cedric = new("cedric");
     private static readonly PartyMemberId Dara = new("dara");
 
+    /// <summary>For tests that never select by portrait slot.</summary>
+    private static readonly PartyMemberId[] NoPortraitSlots = Array.Empty<PartyMemberId>();
+
     private static readonly WorldPosition Somewhere = new(10f, 20f);
 
     /// <summary>One tile of distance: one isometric grid step, (32, 16) in world pixels (ADR 0001).</summary>
@@ -18,7 +21,7 @@ public class SelectionModelTests
 
     private static SelectionModel ModelWith(params PartyMemberId[] selected)
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         foreach (PartyMemberId partyMember in selected)
         {
             model.Click(ShiftClickOn(partyMember));
@@ -59,7 +62,7 @@ public class SelectionModelTests
     [Fact]
     public void Left_click_on_a_party_member_selects_only_them()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
 
         ClickResult result = model.Click(LeftClickOn(Aldric));
 
@@ -70,7 +73,7 @@ public class SelectionModelTests
     [Fact]
     public void Left_click_on_a_different_party_member_replaces_the_selection()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
 
         ClickResult result = model.Click(LeftClickOn(Brenna));
@@ -82,7 +85,7 @@ public class SelectionModelTests
     [Fact]
     public void Left_click_on_the_already_selected_party_member_keeps_them_selected()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
 
         ClickResult result = model.Click(LeftClickOn(Aldric));
@@ -94,7 +97,7 @@ public class SelectionModelTests
     [Fact]
     public void Left_click_on_ground_clears_the_selection()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
 
         ClickResult result = model.Click(new ClickEvent(ClickButton.Left, new ClickTarget.Ground(new WorldPosition(100f, 50f))));
@@ -106,7 +109,7 @@ public class SelectionModelTests
     [Fact]
     public void Shift_click_on_an_unselected_party_member_adds_them_to_the_selection()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
 
         ClickResult result = model.Click(ShiftClickOn(Brenna));
@@ -118,7 +121,7 @@ public class SelectionModelTests
     [Fact]
     public void Shift_click_on_a_selected_party_member_removes_them_from_the_selection()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
         model.Click(ShiftClickOn(Brenna));
 
@@ -131,7 +134,7 @@ public class SelectionModelTests
     [Fact]
     public void Shift_click_on_ground_leaves_the_selection_unchanged()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
         model.Click(ShiftClickOn(Brenna));
 
@@ -145,7 +148,7 @@ public class SelectionModelTests
     [Fact]
     public void Right_click_on_ground_with_a_selection_issues_a_move_order_to_the_clicked_position()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
 
         ClickResult result = model.Click(RightClickOnGround(300f, 120f));
@@ -156,7 +159,7 @@ public class SelectionModelTests
     [Fact]
     public void A_single_selected_party_member_goes_exactly_to_the_clicked_point()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
 
         ClickResult result = model.Click(RightClickOnGround(300f, 120f, Standing((Aldric, 250f, 90f), (Brenna, 310f, 125f))));
@@ -247,7 +250,7 @@ public class SelectionModelTests
     [Fact]
     public void Right_click_with_an_empty_selection_issues_nothing_even_with_party_members_standing_about()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         IReadOnlyDictionary<PartyMemberId, WorldPosition> standing = Standing((Aldric, 100f, 100f), (Brenna, 130f, 110f));
 
         ClickResult onGround = model.Click(RightClickOnGround(300f, 120f, standing));
@@ -261,7 +264,7 @@ public class SelectionModelTests
     [Fact]
     public void Right_click_on_ground_with_an_empty_selection_issues_no_orders()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
 
         ClickResult result = model.Click(RightClickOnGround(300f, 120f));
 
@@ -272,7 +275,7 @@ public class SelectionModelTests
     [Fact]
     public void Right_click_does_not_change_the_selection()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
 
         ClickResult onGround = model.Click(RightClickOnGround(300f, 120f));
@@ -286,7 +289,7 @@ public class SelectionModelTests
     [Fact]
     public void A_second_right_click_issues_a_new_move_order_to_the_new_position()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
         model.Click(RightClickOnGround(300f, 120f));
 
@@ -298,7 +301,7 @@ public class SelectionModelTests
     [Fact]
     public void Right_click_on_a_party_member_with_a_selection_issues_a_move_order_to_their_position()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
 
         ClickResult result = model.Click(RightClickOn(Brenna, 64f, 32f));
@@ -310,7 +313,7 @@ public class SelectionModelTests
     [Fact]
     public void Right_click_on_a_party_member_with_an_empty_selection_issues_no_orders()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
 
         ClickResult result = model.Click(RightClickOn(Brenna, 64f, 32f));
 
@@ -321,7 +324,7 @@ public class SelectionModelTests
     [Fact]
     public void Box_select_replaces_the_selection_with_the_party_members_inside_the_box()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
 
         ClickResult result = model.BoxSelect(new BoxSelectEvent(new[] { Brenna, Cerys }));
@@ -333,7 +336,7 @@ public class SelectionModelTests
     [Fact]
     public void Shift_box_select_adds_the_party_members_inside_the_box_to_the_selection()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
 
         ClickResult result = model.BoxSelect(new BoxSelectEvent(new[] { Brenna, Cerys }, Shift: true));
@@ -345,7 +348,7 @@ public class SelectionModelTests
     [Fact]
     public void An_empty_box_select_clears_the_selection()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
 
         ClickResult result = model.BoxSelect(new BoxSelectEvent(Array.Empty<PartyMemberId>()));
@@ -357,7 +360,7 @@ public class SelectionModelTests
     [Fact]
     public void An_empty_shift_box_select_leaves_the_selection_unchanged()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
         model.Click(ShiftClickOn(Brenna));
 
@@ -370,7 +373,7 @@ public class SelectionModelTests
     [Fact]
     public void Box_select_issues_no_orders_even_with_party_members_already_selected()
     {
-        var model = new SelectionModel();
+        var model = new SelectionModel(NoPortraitSlots);
         model.Click(LeftClickOn(Aldric));
         model.Click(RightClickOnGround(64f, 32f));
 
