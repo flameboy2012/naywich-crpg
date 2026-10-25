@@ -236,7 +236,7 @@ public partial class CombatCheck : HeadlessCheck
 
         Expect("the fighter reaches the goblin and attacks", AttacksBy("Fighter").Count > 0);
         Expect("the fighter stops to attack", !Fighter.IsMoving);
-        float reach = Character.TileLength + Fighter.FeetRadius + _goblin.FeetRadius;
+        float reach = MeleeReach(Fighter, _goblin);
         Expect($"the fighter attacks from within melee reach ({Fighter.GlobalPosition.DistanceTo(_goblin.GlobalPosition):0.0} px)",
             Fighter.GlobalPosition.DistanceTo(_goblin.GlobalPosition) <= reach + 0.5f);
 
@@ -402,7 +402,7 @@ public partial class CombatCheck : HeadlessCheck
 
         Expect($"the scimitar goblin walks to the fighter ({scimitar.DisplayName} moved {_goblinMoved.Contains(scimitar)})",
             _goblinMoved.Contains(scimitar));
-        float reach = Character.TileLength + Fighter.FeetRadius + scimitar.FeetRadius;
+        float reach = MeleeReach(Fighter, scimitar);
         GoblinAttack? melee = GoblinAttacksBy(scimitar).FirstOrDefault();
         Expect($"the scimitar goblin attacks standing still within melee reach ({melee?.Distance:0.0} px, reach {reach:0.0} px)",
             melee is { Moving: false } && melee.Distance <= reach + 0.5f);
@@ -439,10 +439,10 @@ public partial class CombatCheck : HeadlessCheck
         }
 
         int downFrame = _frame;
-        Expect($"the goblins take the fighter to 0 HP ({Fighter.Hp}/12; needs the seed)", Fighter.Hp == 0);
+        Expect($"the goblins take the fighter to 0 HP ({Fighter.Hp}/{Fighter.MaxHp}; needs the seed)", Fighter.Hp == 0);
         Expect("the fighter goes down", Fighter.IsDown);
         Expect($"the fighter's log line shows them down ({(_downLines.Count > 0 ? _downLines[^1].Line : "")})",
-            _downLines.Count > 0 && _downLines[^1].Line.EndsWith("(Fighter: 0/12, down)"));
+            _downLines.Count > 0 && _downLines[^1].Line.EndsWith($"(Fighter: 0/{Fighter.MaxHp}, down)"));
         yield return 2;
         Expect("the fighter drops out of the selection", !Fighter.SelectionRingVisible);
         Expect("the fighter's portrait greys out", Portraits[0].ShowsDown && !Portraits[1].ShowsDown);
@@ -519,7 +519,7 @@ public partial class CombatCheck : HeadlessCheck
         yield return 10;
         _downPhase = false;
         Expect($"at combat end the fighter gets up at 1 HP (got {Fighter.Hp}, down {Fighter.IsDown})",
-            !Fighter.IsDown && Fighter.Hp == 1 && Mathf.IsEqualApprox(Fighter.HpBarFraction, 1f / 12f));
+            !Fighter.IsDown && Fighter.Hp == 1 && Mathf.IsEqualApprox(Fighter.HpBarFraction, 1f / Fighter.MaxHp));
         Expect($"every downed party member gets up at combat end ({string.Join(", ", PartyMembers.Where(p => p.IsDown).Select(p => p.DisplayName))})",
             PartyMembers.All(partyMember => !partyMember.IsDown && partyMember.Hp >= 1));
         Expect($"the fighter's colour comes back (got {Fighter.BodyColour})", Fighter.BodyColour == Fighter.Tint);
@@ -548,7 +548,7 @@ public partial class CombatCheck : HeadlessCheck
         _goblinAttacks.Add(new GoblinAttack(line, goblin is null ? -1f : goblin.GlobalPosition.DistanceTo(Fighter.GlobalPosition),
             goblin?.IsMoving ?? true));
         Match match = GoblinAttackLine.Match(line);
-        if (match.Success && !Mathf.IsEqualApprox(Fighter.HpBarFraction, int.Parse(match.Groups["hp"].Value) / 12f))
+        if (match.Success && !Mathf.IsEqualApprox(Fighter.HpBarFraction, (float)int.Parse(match.Groups["hp"].Value) / Fighter.MaxHp))
         {
             _fighterHpBarMismatches.Add($"{line} shows {Fighter.HpBarFraction}");
         }
@@ -655,7 +655,7 @@ public partial class CombatCheck : HeadlessCheck
 
         _rangedPhase = false;
         Expect($"the rogue and wizard kill Goblin 2 ({_rangedAttacks.Count} attacks)", _rangedGoblin.IsDead);
-        float reach = Character.TileLength + Rogue.FeetRadius + _rangedGoblin.FeetRadius;
+        float reach = MeleeReach(Rogue, _rangedGoblin);
         Expect($"the ranged attackers never come within melee reach (closest {_closestRanged:0} px, reach {reach:0} px)",
             _closestRanged > reach);
         CheckRangedAttackLines();
@@ -667,7 +667,11 @@ public partial class CombatCheck : HeadlessCheck
 
     /// <summary>The farthest the attacker's feet may be from Goblin 2's to attack: range in tiles plus both feet radii.</summary>
     private float RangeEdge(Character attacker) =>
-        attacker.Stats.Attack.RangeTiles * Character.TileLength + attacker.FeetRadius + _rangedGoblin.FeetRadius;
+        CombatRules.MaxAttackDistance(attacker.Stats.Attack.RangeTiles, attacker.FeetRadius, _rangedGoblin.FeetRadius);
+
+    /// <summary>The farthest the attacker's feet may be from the target's for a melee attack to reach.</summary>
+    private static float MeleeReach(Character attacker, Character target) =>
+        CombatRules.MaxAttackDistance(CombatRules.MeleeReachTiles, attacker.FeetRadius, target.FeetRadius);
 
     private List<RangedAttack> RangedAttacksBy(string attacker) =>
         _rangedAttacks.Where(attack => attack.Line.StartsWith(attacker + " → ")).ToList();

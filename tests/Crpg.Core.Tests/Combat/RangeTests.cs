@@ -67,6 +67,19 @@ public class RangeTests
     }
 
     [Fact]
+    public void Melee_reach_between_two_feet_is_one_grid_step_plus_both_radii()
+    {
+        // 35.78 px for the grid step, plus feet radii of 4 and 12.
+        Assert.Equal(51.78f, CombatRules.MaxAttackDistance(CombatRules.MeleeReachTiles, 4f, 12f), precision: 2);
+    }
+
+    [Fact]
+    public void The_farthest_a_shortbow_attack_reaches_is_16_grid_steps_plus_both_radii()
+    {
+        Assert.Equal(588.43f, CombatRules.MaxAttackDistance(TestCharacters.Shortbow.RangeTiles, 8f, 8f), precision: 2);
+    }
+
+    [Fact]
     public void A_ranged_attack_is_not_in_range_at_its_range_in_screen_tile_widths()
     {
         // 16 tiles measured with the 64 px tile width is far past the shortbow's 16 grid steps.

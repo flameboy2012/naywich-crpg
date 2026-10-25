@@ -27,14 +27,24 @@ public sealed class CombatRules(IDiceRoller dice)
     public static float MoveSpeedPixelsPerSecond(float speedTilesPerSecond, float combatSpeed) =>
         speedTilesPerSecond * TileScale.GridStepLength * combatSpeed;
 
+    /// <summary>Melee reach in tiles: the range of every melee attack.</summary>
+    public const int MeleeReachTiles = 1;
+
     /// <summary>
-    /// True when the target is within the attack's range: the distance between the two characters' feet is at most the
-    /// range in tiles times the grid-step length plus both feet radii, so bodies that touch are always in melee reach.
+    /// The farthest apart, in world pixels, two characters' feet may be for an attack of this range to reach: the
+    /// range in tiles times the grid-step length plus both feet radii.
+    /// </summary>
+    public static float MaxAttackDistance(int rangeTiles, float attackerFeetRadius, float targetFeetRadius) =>
+        rangeTiles * TileScale.GridStepLength + attackerFeetRadius + targetFeetRadius;
+
+    /// <summary>
+    /// True when the target is within the attack's range: the distance between the two characters' feet is at most
+    /// <see cref="MaxAttackDistance"/>, so bodies that touch are always in melee reach.
     /// </summary>
     public static bool InRange(WorldPosition attackerFeet, float attackerFeetRadius, WorldPosition targetFeet,
         float targetFeetRadius, Attack attack) =>
         attackerFeet.DistanceTo(targetFeet)
-        <= attack.RangeTiles * TileScale.GridStepLength + attackerFeetRadius + targetFeetRadius;
+        <= MaxAttackDistance(attack.RangeTiles, attackerFeetRadius, targetFeetRadius);
 
     /// <summary>
     /// An enemy's target pick. An enemy becomes aware of the party when a party member who is not down comes within
