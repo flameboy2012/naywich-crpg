@@ -13,9 +13,14 @@
 *.x86_64
 *.zip
 
-# Mono / C# (in case it is used later)
+# Mono / C# / .NET build output (anywhere in the tree)
 .mono/
 mono_crash.*.json
+bin/
+obj/
+*.user
+.vs/
+TestResults/
 
 # Editors
 .vscode/
