@@ -39,8 +39,16 @@ public partial class Character : CharacterBody2D
     /// <summary>True while the character has a destination it has not reached yet.</summary>
     public bool IsMoving { get; private set; }
 
+    /// <summary>
+    /// Colour the body sprite is multiplied by, set per instance so party members on the shared scene can be told
+    /// apart without new art. Read it once the character is ready.
+    /// </summary>
+    [Export]
+    public Color Tint { get; set; } = Colors.White;
+
     public override void _Ready()
     {
+        GetNode<Sprite2D>("Sprite").Modulate = Tint;
         _selectionRing = GetNode<Sprite2D>("SelectionRing");
         _agent = GetNode<NavigationAgent2D>("NavigationAgent2D");
         _agent.Radius = FeetRadius;

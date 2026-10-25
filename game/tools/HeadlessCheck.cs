@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 
 namespace Crpg.Tools;
@@ -19,7 +20,7 @@ public abstract partial class HeadlessCheck : SceneTree
     /// <summary>Physics frames to wait after loading Main, so the zone is loaded and the navigation map synced.</summary>
     private const int SettleFrames = 5;
 
-    private const string PartyMemberPath = "Main/ZoneContainer/TestZone/PartyMember1";
+    private const string ZonePath = "Main/ZoneContainer/TestZone";
 
     /// <summary>Where to click, relative to the party member's feet, to hit them: the middle of the capsule sprite.</summary>
     private static readonly Vector2 PartyMemberClickOffset = new(0, -24);
@@ -28,8 +29,11 @@ public abstract partial class HeadlessCheck : SceneTree
     private int _wait;
     private bool _failed;
 
-    /// <summary>The party member the checks drive. Set before the first step runs.</summary>
-    protected Character PartyMember { get; private set; } = null!;
+    /// <summary>Every party member in the zone, in spawn order (PartyMember1 first). Set before the first step runs.</summary>
+    protected IReadOnlyList<Character> PartyMembers { get; private set; } = null!;
+
+    /// <summary>The first party member: the one single-character checks drive.</summary>
+    protected Character PartyMember => PartyMembers[0];
 
     public override void _Initialize()
     {
@@ -76,9 +80,12 @@ public abstract partial class HeadlessCheck : SceneTree
         Root.PushInput(new InputEventMouseButton { ButtonIndex = button, Pressed = false, Position = screen }, true);
     }
 
-    /// <summary>Clicks on the party member's capsule.</summary>
-    protected void ClickPartyMember(MouseButton button) =>
-        Click(button, PartyMember.GlobalPosition + PartyMemberClickOffset);
+    /// <summary>Clicks on the first party member's capsule.</summary>
+    protected void ClickPartyMember(MouseButton button) => ClickPartyMember(button, PartyMember);
+
+    /// <summary>Clicks on the given party member's capsule.</summary>
+    protected void ClickPartyMember(MouseButton button, Character partyMember) =>
+        Click(button, partyMember.GlobalPosition + PartyMemberClickOffset);
 
     protected void Expect(string name, bool ok)
     {
@@ -95,7 +102,11 @@ public abstract partial class HeadlessCheck : SceneTree
 
     private IEnumerator<int> Steps()
     {
-        PartyMember = Root.GetNode<Character>(PartyMemberPath);
+        Node zone = Root.GetNode(ZonePath);
+        PartyMembers = GetNodesInGroup(PlayerControl.PartyMembersGroup).OfType<PlayerControl>()
+            .Select(control => control.GetParent<Character>())
+            .Where(character => character.GetParent() == zone)
+            .ToList();
         IEnumerator<int> run = Run();
         while (run.MoveNext())
         {

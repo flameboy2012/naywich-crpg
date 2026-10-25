@@ -17,12 +17,21 @@ public partial class Main : Node2D
         CentreCameraOn(zone.GetNode<TileMapLayer>("NavigationRegion2D/Ground"));
     }
 
-    /// <summary>Loads a zone into ZoneContainer and reparents the party members into it.</summary>
+    /// <summary>
+    /// Loads a zone into ZoneContainer and reparents the party members into it. A Party node holding more than
+    /// <see cref="Core.Party.Cap"/> party members is an authoring error.
+    /// </summary>
     private Node2D LoadZone(string path)
     {
         var zone = GD.Load<PackedScene>(path).Instantiate<Node2D>();
         GetNode("ZoneContainer").AddChild(zone);
-        foreach (Node partyMember in GetNode("Party").GetChildren())
+        Godot.Collections.Array<Node> party = GetNode("Party").GetChildren();
+        if (party.Count > Core.Party.Cap)
+        {
+            GD.PushError($"Main: the Party node holds {party.Count} party members, more than the cap of {Core.Party.Cap}");
+        }
+
+        foreach (Node partyMember in party)
         {
             partyMember.Reparent(zone);
         }

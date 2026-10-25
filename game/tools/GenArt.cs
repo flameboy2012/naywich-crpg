@@ -18,8 +18,9 @@ public partial class GenArt : SceneTree
     private static readonly Color GroundDark = new(0.30f, 0.54f, 0.27f);
     private static readonly Color ObstacleFill = new(0.55f, 0.53f, 0.50f);
     private static readonly Color ObstacleEdge = new(0.22f, 0.20f, 0.20f);
-    private static readonly Color CapsuleBody = new(0.25f, 0.45f, 0.85f);
-    private static readonly Color CapsuleEdge = new(0.12f, 0.22f, 0.45f);
+    // Light grey, so each party member's tint (Character.Tint, multiplied in) shows as its own colour.
+    private static readonly Color CapsuleBody = new(0.92f, 0.92f, 0.92f);
+    private static readonly Color CapsuleEdge = new(0.40f, 0.40f, 0.40f);
     private static readonly Color Ring = new(1.0f, 0.85f, 0.2f);
 
     public override void _Initialize()
