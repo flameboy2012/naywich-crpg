@@ -252,7 +252,7 @@ Each outdoor arrow is one hex crossing at 3 hours; the camp-to-forest exit stays
 
 ## Technical architecture
 
-Godot 4.7 (.NET build), C#, 2D isometric TileMapLayer nodes, with a persistent `Main` scene that swaps zone scenes in and out. C# is a provisional choice, to be reviewed at the end of M1.5 (see `docs/adr/0002-csharp-over-gdscript.md`).
+Godot 4.7 (.NET build), C#, 2D isometric TileMapLayer nodes, with a persistent `Main` scene that swaps zone scenes in and out. C# was confirmed after a review at the end of M1.5 (see `docs/adr/0002-csharp-over-gdscript.md`).
 
 **Solution layout**
 
@@ -332,7 +332,7 @@ Build in small, playable steps. Each milestone ends with something you can run a
 - [x] Move marker: on right-click, a ring in the member's tint at each selected member's real end point. Markers pulse and fade over about 1 s; a new click replaces them all.
 - [x] Path line: a thin line in the member's tint along the navigation path from each moving party member to their destination, selected or not, so their order stays visible. It shrinks as they walk and disappears on arrival.
 - Known limit from play-test: with avoidance, party members can get stuck on each other and slow down when steering around one another. Acceptable for now; it needs a little micro.
-- [ ] Review the C# vs GDScript decision (ADR 0002): log Godot C# friction during the build, decide at merge
+- [x] Review the C# vs GDScript decision (ADR 0002): log Godot C# friction during the build, decide at merge. C# accepted.
 
 **M1.6 — Party UI and camera**
 

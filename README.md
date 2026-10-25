@@ -16,7 +16,7 @@ Domain terms are defined in [GLOSSARY.md](GLOSSARY.md). Architecture decisions a
 
 ## Tech
 
-- Godot 4.7 (.NET build), C#. This is a provisional choice, reviewed at the end of M1.5 ([ADR 0002](docs/adr/0002-csharp-over-gdscript.md))
+- Godot 4.7 (.NET build), C# ([ADR 0002](docs/adr/0002-csharp-over-gdscript.md))
 - Pure rules logic in a plain .NET library (`Crpg.Core`), tested with xUnit
 - 64x32 isometric tiles, with one tile equal to 5 ft ([ADR 0001](docs/adr/0001-isometric-tile-scale.md))
 - 2D isometric `TileMapLayer` nodes, with a persistent `Main` scene that swaps zone scenes
