@@ -5,9 +5,9 @@ using Godot;
 namespace Crpg.Tools;
 
 /// <summary>
-/// Headless check for path lines: loads Main, pushes real clicks through the viewport and checks that each selected,
-/// moving party member shows a line in their tint from where they stand along the rest of their path, that it shrinks
-/// as they walk, hides on deselection and arrival, and that a moving party member who isn't selected shows none.
+/// Headless check for path lines: loads Main, pushes real clicks through the viewport and checks that each moving
+/// party member shows a line in their tint from where they stand along the rest of their path, that it shrinks as
+/// they walk, stays visible when they are deselected mid-move, and hides on arrival.
 /// Run from game/ after dotnet build:
 ///   godot --headless --path . --fixed-fps 60 --quit-after 1500 --script res://tools/PathLineCheck.cs
 /// Prints "PathLineCheck: PASSED" and exits 0, or prints ERROR lines and exits 1.
@@ -57,26 +57,21 @@ public partial class PathLineCheck : HeadlessCheck
                 now < lengths[partyMember] - 5f);
         }
 
-        // Deselecting a moving party member hides their line; reselecting them while they still move shows it again.
+        // Deselecting a moving party member keeps their line, so their order stays visible.
         Character second = PartyMembers[1];
         ClickPartyMember(MouseButton.Left, second, shift: true);
         yield return 2;
         Expect("shift-click deselects a moving party member", !second.SelectionRingVisible && second.IsMoving);
-        Expect("a deselected moving party member shows no line", LineOf(second) is null);
-        Expect("the others still show their lines",
-            PartyMembers.Except(new[] { second }).All(partyMember => LineOf(partyMember) is not null));
-        ClickPartyMember(MouseButton.Left, second, shift: true);
-        yield return 2;
-        Expect("shift-click reselects them while they still move", second.SelectionRingVisible && second.IsMoving);
-        ExpectLine(second, "after reselecting");
+        ExpectLine(second, "after shift-click deselects them mid-move");
 
-        // A plain click on one party member leaves the rest moving but unselected: they show no line.
+        // A plain click on one party member leaves the rest moving but unselected: they keep their lines.
         ClickPartyMember(MouseButton.Left, PartyMember);
         yield return 2;
         Expect("the others keep walking once deselected", PartyMembers.Skip(1).All(partyMember => partyMember.IsMoving));
-        Expect("moving party members who aren't selected show no line",
-            PartyMembers.Skip(1).All(partyMember => LineOf(partyMember) is null));
-        ExpectLine(PartyMember, "while still selected");
+        foreach (Character partyMember in PartyMembers)
+        {
+            ExpectLine(partyMember, "after a plain click on the first party member");
+        }
 
         // Arrival (by reaching the destination or by the no-progress rule) hides the line.
         for (int i = 0; i < 900 && PartyMembers.Any(partyMember => partyMember.IsMoving); i++)

@@ -5,7 +5,8 @@ namespace Crpg;
 
 /// <summary>
 /// The drawn route of one party member: a thin line in their tint from where they stand along the rest of their
-/// navigation path. It shows only while the party member is selected and moving, and shrinks as they walk.
+/// navigation path. It shows while the party member is moving, selected or not, so their current order stays visible,
+/// and shrinks as they walk.
 /// </summary>
 public partial class PathLine : Line2D
 {
@@ -31,7 +32,7 @@ public partial class PathLine : Line2D
     // Updated every frame after physics, so the line starts where the body stands now.
     public override void _Process(double delta)
     {
-        Vector2[] remaining = Source.IsSelected && Source.IsMoving ? Source.RemainingPath : [];
+        Vector2[] remaining = Source.IsMoving ? Source.RemainingPath : [];
         Visible = remaining.Length > 0;
         Points = Visible ? remaining.Prepend(Source.GlobalPosition).Select(ToLocal).ToArray() : [];
     }

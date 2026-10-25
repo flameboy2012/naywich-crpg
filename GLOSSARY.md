@@ -43,7 +43,7 @@ A brief ring showing where a party member will actually stop after a move order.
 _Avoid_: Cursor, waypoint
 
 **Path line**:
-The drawn route from a selected party member to their destination.
+The drawn route from a moving party member to their destination, shown whether or not they are selected.
 _Avoid_: Trail, route preview
 
 ## Space
