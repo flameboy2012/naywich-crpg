@@ -136,20 +136,6 @@ public partial class KeySelectionCheck : HeadlessCheck
                 .SequenceEqual(PartyMembers.Select(partyMember => partyMember == second)));
     }
 
-    /// <summary>Presses and releases a key through the viewport, optionally with shift or Ctrl held.</summary>
-    private void PressKey(Key key, bool shift = false, bool ctrl = false)
-    {
-        foreach (bool pressed in new[] { true, false })
-        {
-            Root.PushInput(
-                new InputEventKey
-                {
-                    Keycode = key, PhysicalKeycode = key, Pressed = pressed, ShiftPressed = shift, CtrlPressed = ctrl,
-                },
-                true);
-        }
-    }
-
     /// <summary>True when exactly the given party members' rings are visible and every other ring is hidden.</summary>
     private bool RingsShow(params Character[] selected) =>
         PartyMembers.All(partyMember => partyMember.SelectionRingVisible == selected.Contains(partyMember));
@@ -161,32 +147,6 @@ public partial class KeySelectionCheck : HeadlessCheck
     private bool PortraitsShow(params Character[] selected) =>
         Portraits.Count == PartyMembers.Count
         && Portraits.Select((portrait, i) => portrait.Highlighted == selected.Contains(PartyMembers[i])).All(ok => ok);
-
-    /// <summary>The portraits, top to bottom.</summary>
-    private IReadOnlyList<Portrait> Portraits =>
-        Root.GetNode("Main/UI/PortraitColumn").GetChildren().OfType<Portrait>().ToList();
-
-    /// <summary>
-    /// Presses and releases a mouse button on the middle of a portrait, through the viewport. A double-click is two
-    /// clicks, the second press marked as a double-click, as Godot sends it.
-    /// </summary>
-    private void ClickPortrait(int slot, MouseButton button, bool shift = false, bool doubleClick = false)
-    {
-        Vector2 at = Portraits[slot - 1].GetGlobalRect().GetCenter();
-        foreach (bool second in doubleClick ? new[] { false, true } : new[] { false })
-        {
-            foreach (bool pressed in new[] { true, false })
-            {
-                Root.PushInput(
-                    new InputEventMouseButton
-                    {
-                        ButtonIndex = button, Pressed = pressed, Position = at, ShiftPressed = shift,
-                        DoubleClick = second && pressed,
-                    },
-                    true);
-            }
-        }
-    }
 
     /// <summary>True when no party member has moved from where they stood.</summary>
     private bool NoneMovedFrom(Vector2[] start) =>

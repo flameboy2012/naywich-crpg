@@ -182,6 +182,46 @@ public abstract partial class HeadlessCheck : SceneTree
         Expect("the whole party is selected", PartyMembers.All(partyMember => partyMember.SelectionRingVisible));
     }
 
+    /// <summary>Presses and releases a key through the viewport, optionally with shift or Ctrl held.</summary>
+    protected void PressKey(Key key, bool shift = false, bool ctrl = false)
+    {
+        foreach (bool pressed in new[] { true, false })
+        {
+            Root.PushInput(
+                new InputEventKey
+                {
+                    Keycode = key, PhysicalKeycode = key, Pressed = pressed, ShiftPressed = shift, CtrlPressed = ctrl,
+                },
+                true);
+        }
+    }
+
+    /// <summary>The portraits, top to bottom.</summary>
+    protected IReadOnlyList<Portrait> Portraits =>
+        Root.GetNode("Main/UI/PortraitColumn").GetChildren().OfType<Portrait>().ToList();
+
+    /// <summary>
+    /// Presses and releases a mouse button on the middle of a portrait, through the viewport. A double-click is two
+    /// clicks, the second press marked as a double-click, as Godot sends it.
+    /// </summary>
+    protected void ClickPortrait(int slot, MouseButton button, bool shift = false, bool doubleClick = false)
+    {
+        Vector2 at = Portraits[slot - 1].GetGlobalRect().GetCenter();
+        foreach (bool second in doubleClick ? new[] { false, true } : new[] { false })
+        {
+            foreach (bool pressed in new[] { true, false })
+            {
+                Root.PushInput(
+                    new InputEventMouseButton
+                    {
+                        ButtonIndex = button, Pressed = pressed, Position = at, ShiftPressed = shift,
+                        DoubleClick = second && pressed,
+                    },
+                    true);
+            }
+        }
+    }
+
     protected void Expect(string name, bool ok)
     {
         if (ok)
