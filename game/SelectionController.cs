@@ -36,9 +36,9 @@ public partial class SelectionController : Node
         }
 
         Vector2 world = GetViewport().GetCanvasTransform().AffineInverse() * mouse.Position;
-        List<PlayerControl> partyMembers = PartyMembers();
-        ClickTarget target = PartyMemberAt(world, partyMembers) is { } hit
-            ? new ClickTarget.PartyMember(hit.PartyMemberId, hit.Character.GlobalPosition.ToWorldPosition())
+        Dictionary<PartyMemberId, PlayerControl> partyMembers = PartyMembers();
+        ClickTarget target = PartyMemberAt(world, partyMembers.Values) is { } hit
+            ? new ClickTarget.PartyMember(hit.PartyMemberId, hit.GlobalPosition.ToWorldPosition())
             : new ClickTarget.Ground(world.ToWorldPosition());
 
         ClickResult result = _model.Click(new ClickEvent(button.Value, target));
@@ -46,11 +46,12 @@ public partial class SelectionController : Node
         GetViewport().SetInputAsHandled();
     }
 
-    private List<PlayerControl> PartyMembers() =>
-        GetTree().GetNodesInGroup(PlayerControl.PartyMembersGroup).OfType<PlayerControl>().ToList();
+    private Dictionary<PartyMemberId, PlayerControl> PartyMembers() =>
+        GetTree().GetNodesInGroup(PlayerControl.PartyMembersGroup).OfType<PlayerControl>()
+            .ToDictionary(partyMember => partyMember.PartyMemberId);
 
     /// <summary>The party member whose click area contains the world point, if any.</summary>
-    private PlayerControl? PartyMemberAt(Vector2 world, List<PlayerControl> partyMembers)
+    private PlayerControl? PartyMemberAt(Vector2 world, IEnumerable<PlayerControl> partyMembers)
     {
         var query = new PhysicsPointQueryParameters2D
         {
@@ -61,8 +62,8 @@ public partial class SelectionController : Node
         };
         foreach (var hit in GetViewport().World2D.DirectSpaceState.IntersectPoint(query))
         {
-            if (hit["collider"].AsGodotObject() is Area2D area && area.GetParent() is Character character
-                && partyMembers.FirstOrDefault(p => p.Character == character) is { } partyMember)
+            if (hit["collider"].AsGodotObject() is Area2D area
+                && partyMembers.FirstOrDefault(partyMember => partyMember.OwnsClickArea(area)) is { } partyMember)
             {
                 return partyMember;
             }
@@ -71,19 +72,18 @@ public partial class SelectionController : Node
         return null;
     }
 
-    private static void Apply(ClickResult result, List<PlayerControl> partyMembers)
+    private static void Apply(ClickResult result, Dictionary<PartyMemberId, PlayerControl> partyMembers)
     {
-        foreach (PlayerControl partyMember in partyMembers)
+        foreach ((PartyMemberId id, PlayerControl partyMember) in partyMembers)
         {
-            partyMember.Character.SelectionRingVisible = result.Selection.Contains(partyMember.PartyMemberId);
+            partyMember.ShowSelected(result.Selection.Contains(id));
         }
 
         foreach (Order order in result.Orders)
         {
-            if (order is MoveOrder move
-                && partyMembers.FirstOrDefault(p => p.PartyMemberId == move.PartyMember) is { } partyMember)
+            if (order is MoveOrder move && partyMembers.TryGetValue(move.PartyMember, out PlayerControl? partyMember))
             {
-                partyMember.Character.MoveTo(move.Destination.ToVector2());
+                partyMember.MoveTo(move.Destination.ToVector2());
             }
         }
     }
