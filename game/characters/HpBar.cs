@@ -9,10 +9,10 @@ public partial class HpBar : Node2D
     public Vector2 Size { get; set; } = new(32, 4);
 
     [Export]
-    public Color FillColour { get; set; } = new(0.3f, 0.85f, 0.3f);
+    public Color FillColor { get; set; } = new(0.3f, 0.85f, 0.3f);
 
     [Export]
-    public Color EmptyColour { get; set; } = new(0.35f, 0.05f, 0.05f, 0.9f);
+    public Color EmptyColor { get; set; } = new(0.35f, 0.05f, 0.05f, 0.9f);
 
     private float _fraction = 1f;
 
@@ -31,7 +31,7 @@ public partial class HpBar : Node2D
     {
         var back = new Rect2(-Size / 2, Size);
         DrawRect(back.Grow(1), Colors.Black);
-        DrawRect(back, EmptyColour);
-        DrawRect(new Rect2(back.Position, new Vector2(Size.X * _fraction, Size.Y)), FillColour);
+        DrawRect(back, EmptyColor);
+        DrawRect(new Rect2(back.Position, new Vector2(Size.X * _fraction, Size.Y)), FillColor);
     }
 }

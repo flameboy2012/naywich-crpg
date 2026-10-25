@@ -134,7 +134,7 @@ public partial class CombatCheck : HeadlessCheck
         if (_flashPending)
         {
             _flashPending = false;
-            Color body = _goblin.BodyColour;
+            Color body = _goblin.BodyColor;
             if (body.R > _goblin.Tint.R + 0.3f && body.G > _goblin.Tint.G + 0.3f)
             {
                 _hitsFlashed++;
@@ -144,7 +144,7 @@ public partial class CombatCheck : HeadlessCheck
         if (_rangedFlashPending)
         {
             _rangedFlashPending = false;
-            Color body = _rangedGoblin.BodyColour;
+            Color body = _rangedGoblin.BodyColor;
             if (body.R > _rangedGoblin.Tint.R + 0.3f && body.G > _rangedGoblin.Tint.G + 0.3f)
             {
                 _rangedHitsFlashed++;
@@ -275,9 +275,9 @@ public partial class CombatCheck : HeadlessCheck
             _hpBarMismatches.Count == 0);
 
         yield return 30;
-        Expect($"the dead goblin is grey (got {_goblin.BodyColour})",
-            _goblin.BodyColour.R < 0.6f && Mathf.IsEqualApprox(_goblin.BodyColour.R, _goblin.BodyColour.G)
-            && Mathf.IsEqualApprox(_goblin.BodyColour.G, _goblin.BodyColour.B));
+        Expect($"the dead goblin is grey (got {_goblin.BodyColor})",
+            _goblin.BodyColor.R < 0.6f && Mathf.IsEqualApprox(_goblin.BodyColor.R, _goblin.BodyColor.G)
+            && Mathf.IsEqualApprox(_goblin.BodyColor.G, _goblin.BodyColor.B));
         Expect("the dead goblin's HP bar is empty", Mathf.IsZeroApprox(_goblin.HpBarFraction));
         Expect("the dead goblin shows no target rings", _goblin.TargetRingTints.Count == 0);
         Expect($"the attackers go idle once the goblin is dead (fighter moving {Fighter.IsMoving}, cleric moving {Cleric.IsMoving})",
@@ -449,7 +449,7 @@ public partial class CombatCheck : HeadlessCheck
 
         // Past the hit flash that took the fighter down.
         yield return 30;
-        Expect($"the downed fighter is grey (got {Fighter.BodyColour})", IsGrey(Fighter.BodyColour));
+        Expect($"the downed fighter is grey (got {Fighter.BodyColor})", IsGrey(Fighter.BodyColor));
         Character[] up = { Cleric, Rogue, Wizard };
         foreach (Character goblin in _wakeGoblins.Where(goblin => !goblin.IsDead))
         {
@@ -522,15 +522,15 @@ public partial class CombatCheck : HeadlessCheck
             !Fighter.IsDown && Fighter.Hp == 1 && Mathf.IsEqualApprox(Fighter.HpBarFraction, 1f / Fighter.MaxHp));
         Expect($"every downed party member gets up at combat end ({string.Join(", ", PartyMembers.Where(p => p.IsDown).Select(p => p.DisplayName))})",
             PartyMembers.All(partyMember => !partyMember.IsDown && partyMember.Hp >= 1));
-        Expect($"the fighter's colour comes back (got {Fighter.BodyColour})", Fighter.BodyColour == Fighter.Tint);
+        Expect($"the fighter's colour comes back (got {Fighter.BodyColor})", Fighter.BodyColor == Fighter.Tint);
         Expect("the fighter's portrait comes back", !Portraits[0].ShowsDown);
         PressKey(Key.Key1);
         yield return 2;
         Expect("key 1 selects the fighter again", Fighter.SelectionRingVisible && !Cleric.SelectionRingVisible);
     }
 
-    private static bool IsGrey(Color colour) =>
-        colour.R < 0.6f && Mathf.IsEqualApprox(colour.R, colour.G) && Mathf.IsEqualApprox(colour.G, colour.B);
+    private static bool IsGrey(Color color) =>
+        color.R < 0.6f && Mathf.IsEqualApprox(color.R, color.G) && Mathf.IsEqualApprox(color.G, color.B);
     private static float AwarenessRadiusPixels(Character goblin) =>
         ((Data.MonsterData)goblin.CharacterStats!).AwarenessRadiusTiles * Character.TileLength;
 

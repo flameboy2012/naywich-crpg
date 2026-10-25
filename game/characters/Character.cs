@@ -41,7 +41,7 @@ public partial class Character : CharacterBody2D
     private const float HitFlashSeconds = 0.25f;
 
     /// <summary>The body colour at the start of a hit flash: an over-bright pulse of the tint.</summary>
-    private static readonly Color HitFlashColour = new(2.2f, 2.2f, 2.2f, 1f);
+    private static readonly Color HitFlashColor = new(2.2f, 2.2f, 2.2f, 1f);
 
     /// <summary>The body colour of a dead enemy or a downed party member.</summary>
     private static readonly Color DeadColour = new(0.42f, 0.42f, 0.42f, 1f);
@@ -154,7 +154,7 @@ public partial class Character : CharacterBody2D
     public bool HpBarVisible => _hpBar.IsVisibleInTree();
 
     /// <summary>The colour the body sprite is drawn with now: the tint, a hit flash, or grey when dead.</summary>
-    public Color BodyColour => _sprite.Modulate;
+    public Color BodyColor => _sprite.Modulate;
 
     /// <summary>The tints of the target rings under this character, one per party member attacking it.</summary>
     public System.Collections.Generic.IReadOnlyList<Color> TargetRingTints => _targetRings.Tints;
@@ -395,13 +395,13 @@ public partial class Character : CharacterBody2D
     private void Flash()
     {
         _flash?.Kill();
-        _sprite.Modulate = HitFlashColour;
+        _sprite.Modulate = HitFlashColor;
         _flash = CreateTween();
-        _flash.TweenProperty(_sprite, "modulate", RestingColour, HitFlashSeconds);
+        _flash.TweenProperty(_sprite, "modulate", RestingColor, HitFlashSeconds);
     }
 
     /// <summary>The body colour between hit flashes: grey when dead or down, else the tint.</summary>
-    private Color RestingColour => IsDead || IsDown ? DeadColour : Tint;
+    private Color RestingColor => IsDead || IsDown ? DeadColour : Tint;
 
     /// <summary>
     /// A party member at 0 HP: grey and lying where they fell, no longer steered around, and no longer acting on any

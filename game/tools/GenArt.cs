@@ -59,7 +59,7 @@ public partial class GenArt : SceneTree
                     float dy = Mathf.Abs(y - (TileHeight - 1) / 2f) / (TileHeight / 2f);
                     if (dx + dy <= 1f)
                     {
-                        img.SetPixel(t * TileWidth + x, y, t < 2 ? ground[t] : ObstacleColour(dx, dy));
+                        img.SetPixel(t * TileWidth + x, y, t < 2 ? ground[t] : ObstacleColor(dx, dy));
                     }
                 }
             }
@@ -69,7 +69,7 @@ public partial class GenArt : SceneTree
     }
 
     /// <summary>Obstacle pixel: dark rim at the diamond edge, dark cross joining the edge midpoints, grey fill.</summary>
-    private static Color ObstacleColour(float dx, float dy)
+    private static Color ObstacleColor(float dx, float dy)
     {
         bool rim = dx + dy > 0.86f;
         bool cross = Mathf.Abs(dx - dy) < 0.08f;
