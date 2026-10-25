@@ -20,6 +20,36 @@ _Avoid_: Mob, creep
 Any character currently hostile to the party. A monster or a faction NPC can be an enemy.
 _Avoid_: Hostile, foe
 
+**Down**:
+A party member at 0 HP. They stay on the field, cannot be selected or ordered, are ignored by enemies, and get up at 1 HP at combat end.
+_Avoid_: KO, unconscious, dead
+
+**Dead**:
+An enemy at 0 HP. Its body stays where it fell but takes no further part.
+_Avoid_: Killed, destroyed
+
+## Combat
+
+**Attack**:
+One way a character can attack, such as a weapon or a cantrip. Each has an ability, damage dice, damage type and range.
+_Avoid_: Ability, move, skill
+
+**Attack cooldown**:
+The time a character must wait between attacks: one 5e round, 6 real seconds at normal combat speed.
+_Avoid_: Attack timer, swing timer, round
+
+**Awareness radius**:
+How far, in tiles, a character notices an enemy.
+_Avoid_: Aggro range, sight range
+
+**Combat end**:
+The moment no living enemy in the zone is aware of the party. There is no separate combat mode.
+_Avoid_: Battle over, encounter end
+
+**Combat log**:
+The scrolling text record of every attack roll, damage roll and result.
+_Avoid_: Console, chat log
+
 ## Control
 
 **Selection**:

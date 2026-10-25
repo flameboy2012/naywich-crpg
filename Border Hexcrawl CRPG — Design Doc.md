@@ -116,7 +116,7 @@ Combat is real-time with pause, as in Baldur's Gate 1: there is no separate comb
 
 **Timing: rounds become cooldowns**
 
-- One 5e round = 6 game seconds. Each attack has a cooldown equal to one round (scaled by a global combat speed setting).
+- One 5e round = 6 real seconds, not game-clock time (see `docs/adr/0003-combat-runs-in-real-seconds.md`). Each attack has a cooldown equal to one round (scaled by a global combat speed setting).
 - A unit attacks when its target is in range and its cooldown is ready; otherwise it moves to close distance.
 - Movement speed derives from 5e speed (30 ft per round becomes a tunable pixels-per-second value).
 
@@ -145,7 +145,7 @@ All game data lives in Godot Resources (.tres), so new monsters, weapons and zon
 | Resource | Key fields (v1) | Later |
 | --- | --- | --- |
 | `CharacterStats` | name, portrait, STR/DEX/CON/INT/WIS/CHA, max HP, AC, speed, proficiency bonus, equipped weapon | class, level, XP, skills, saves |
-| `WeaponData` | name, damage dice (e.g. 1d8), damage type, ability used (STR/DEX/finesse), range in tiles, is\_ranged | properties, magic bonus |
+| `WeaponData` | name, damage dice (e.g. 1d8), damage type, ability used (STR/DEX/finesse/INT), adds ability mod to damage (false for cantrips), range in tiles, is\_ranged | properties, magic bonus |
 | `ArmorData` | name, base AC, max DEX bonus | stealth disadvantage |
 | `MonsterData` | extends CharacterStats; awareness radius, faction, XP value, loot table | abilities, resistances |
 | `ZoneData` | id, scene path, hex coord, terrain, encounter table, faction presence | weather, ambient audio |
@@ -342,14 +342,22 @@ Build in small, playable steps. Each milestone ends with something you can run a
 - [x] Camera pan (edges, WASD/arrows, middle-mouse) and clamp to the zone bounds, with black outside the zone. No panning during box select or while Ctrl is held.
 - Deferred: follow-selected camera, double-tap a number key to centre, zoom.
 
-**M2 — Combat prototype**
+**M2 — Combat core**
 
-- [ ] `Rules` autoload with dice rolling and attack resolution
-- [ ] One enemy type using `MonsterData`
-- [ ] Click enemy to attack; cooldown-based attacks
-- [ ] Idle AI: attack nearest enemy; enemies attack nearest party member
-- [ ] HP bars, death/down, floating text, combat log
+- [ ] `Rules` autoload with dice rolling and attack resolution, one seeded RNG (seed logged, `--seed N` to replay)
+- [ ] Classic party: fighter and cleric melee, rogue shortbow, wizard Fire Bolt cantrip on the same ranged attack code
+- [ ] One enemy type (SRD goblin) using `MonsterData`; four in the test zone, two melee and two ranged
+- [ ] Right-click enemy to attack; 6 s attack cooldown per character
+- [ ] Enemies attack the nearest party member inside their awareness radius
+- [ ] HP bars, down/dead, recovery at 1 HP at combat end, combat log
 - [ ] Space to pause; orders while paused
+
+**M2.5 — Combat feel**
+
+- [ ] Idle AI: party members attack the nearest enemy
+- [ ] Floating combat text
+- [ ] Auto-pause options
+- [ ] Game over and reload
 
 **M3 — Zone graph**
 
