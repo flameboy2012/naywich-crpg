@@ -15,7 +15,10 @@ namespace Crpg.Tools;
 /// grey, loses its click area and its attackers go idle. Then the rogue and wizard attack Goblin 2 from range: each
 /// stops at the range of their attack (shortbow 16 tiles, Fire Bolt 24) and never closes to melee, both follow the
 /// goblin when it walks away and attack again once back in range, and their log lines show shortbow damage with the
-/// DEX mod and Fire Bolt damage without one.
+/// DEX mod and Fire Bolt damage without one. Those cases run with the goblins' AI off, so the goblins stand still.
+/// Last, goblins fight back: the party goes back to its start and the AI comes on. The two living goblins stand idle
+/// until the fighter walks within their awareness radius, then attack the fighter: the scimitar goblin walks into melee,
+/// the shortbow goblin shoots from where it stands, and every attack writes a log line and shrinks the fighter's HP bar.
 /// Run from game/ after dotnet build, with the seed:
 ///   godot --headless --path . --fixed-fps 60 --quit-after 6000 --script res://tools/CombatCheck.cs --seed 1
 /// Prints "CombatCheck: PASSED" and exits 0, or prints ERROR lines and exits 1.
@@ -58,6 +61,31 @@ public partial class CombatCheck : HeadlessCheck
 
     /// <summary>How long the check waits for Goblin 2 to finish walking away.</summary>
     private const int FleeFrames = 1500;
+
+    /// <summary>A goblin attack on the fighter: d20+4 against chain mail's AC 16, 1d6+2 on a hit.</summary>
+    private static readonly Regex GoblinAttackLine = new(
+        @"^Goblin [34] → Fighter: \d+\+4=\d+ vs AC 16 (hit|miss|nat 20 crit|nat 1 miss)"
+        + @"(, \d+d6\+2=\d+ (slashing|piercing))? \(Fighter: (?<hp>\d+)/12(, down)?\)$");
+
+    /// <summary>How long the goblins are watched standing idle once their AI is on and the party is out of reach.</summary>
+    private const int IdleFrames = 60;
+
+    /// <summary>How far short of Goblin 3, in tiles, the fighter's move order ends: inside both goblins' radius.</summary>
+    private const float StopShortTiles = 5f;
+
+    /// <summary>
+    /// How far (px) inside the awareness radius a waking goblin may first be seen with a target: a frame or two of
+    /// the fighter's and the goblin's walking.
+    /// </summary>
+    private const float WakeSlack = 3f;
+
+    private List<Vector2> _partyStarts = null!;
+    private Character[] _wakeGoblins = [];
+    private bool _wakePhase;
+    private readonly Dictionary<Character, Wake> _woke = new();
+    private readonly HashSet<Character> _goblinMoved = new();
+    private readonly List<GoblinAttack> _goblinAttacks = new();
+    private readonly List<string> _fighterHpBarMismatches = new();
 
     private readonly List<(int Frame, string Line)> _attacks = new();
     private readonly List<RangedAttack> _rangedAttacks = new();
@@ -115,6 +143,11 @@ public partial class CombatCheck : HeadlessCheck
             }
         }
 
+        if (_wakePhase)
+        {
+            TrackWake();
+        }
+
         if (_rangedPhase)
         {
             _closestRanged = Mathf.Min(_closestRanged, Mathf.Min(RangedDistance(Rogue), RangedDistance(Wizard)));
@@ -145,6 +178,12 @@ public partial class CombatCheck : HeadlessCheck
         {
             yield break;
         }
+
+        _partyStarts = PartyMembers.Select(partyMember => partyMember.GlobalPosition).ToList();
+        CheckCluster();
+
+        // The party's attacks are checked on goblins that stand still: their AI stays off until WakeFight.
+        SetGoblinAi(false);
 
         Expect("the goblin's stats come from a MonsterData Resource", _goblin.CharacterStats is Data.MonsterData);
         Expect($"the goblin is an enemy named Goblin 1 (got {_goblin.DisplayName})",
@@ -250,8 +289,166 @@ public partial class CombatCheck : HeadlessCheck
             yield return step;
         }
 
+        foreach (int step in WakeFight())
+        {
+            yield return step;
+        }
+
         rules.Log.Changed -= OnLogChanged;
     }
+
+    private IEnumerable<Character> Goblins =>
+        Zone.GetChildren().OfType<Character>().Where(character => character.IsEnemy);
+
+    /// <summary>Turns every goblin's AI control component on or off.</summary>
+    private void SetGoblinAi(bool on)
+    {
+        foreach (Character goblin in Goblins)
+        {
+            goblin.GetNode<AiControl>("AiControl").ProcessMode = on ? Node.ProcessModeEnum.Inherit : Node.ProcessModeEnum.Disabled;
+        }
+    }
+
+    /// <summary>Four goblins, two scimitar and two shortbow, in one cluster about 15 tiles from the party start.</summary>
+    private void CheckCluster()
+    {
+        List<Character> goblins = Goblins.ToList();
+        Vector2 partyStart = _partyStarts.Aggregate(Vector2.Zero, (sum, at) => sum + at) / _partyStarts.Count;
+        Vector2 centre = goblins.Aggregate(Vector2.Zero, (sum, goblin) => sum + goblin.GlobalPosition) / goblins.Count;
+        float fromParty = partyStart.DistanceTo(centre) / Character.TileLength;
+        float spread = goblins.Max(goblin => goblin.GlobalPosition.DistanceTo(centre)) / Character.TileLength;
+        Expect($"four goblins in the zone ({goblins.Count})", goblins.Count == 4);
+        Expect("two goblins have scimitars and two have shortbows",
+            goblins.Count(goblin => goblin.Stats.Attack.Name == "Scimitar") == 2
+            && goblins.Count(goblin => goblin.Stats.Attack.Name == "Shortbow") == 2);
+        Expect($"the goblins stand in one cluster ({spread:0.0} tiles from its centre at most)", spread <= 3f);
+        Expect($"the cluster is about 15 tiles from the party start ({fromParty:0.0} tiles)",
+            fromParty >= 13f && fromParty <= 17f);
+    }
+
+    /// <summary>
+    /// Goblins fight back. The party goes back to its start and the AI comes on: the living goblins, a scimitar and a
+    /// shortbow, stand idle while every party member is outside their awareness radius. The fighter walks towards
+    /// them; each goblin wakes the moment the fighter comes within its radius and attacks them. The scimitar goblin
+    /// walks into melee reach to attack; the shortbow goblin shoots from where it stands. Every goblin attack writes a
+    /// combat log line and leaves the fighter's HP bar at the logged HP.
+    /// </summary>
+    private IEnumerable<int> WakeFight()
+    {
+        Character? scimitar = Zone.GetNodeOrNull<Character>("Goblin3");
+        Character? shortbow = Zone.GetNodeOrNull<Character>("Goblin4");
+        Expect("Goblin 3 has a scimitar and Goblin 4 a shortbow",
+            scimitar?.Stats.Attack.Name == "Scimitar" && shortbow?.Stats.Attack.Name == "Shortbow");
+        if (scimitar is null || shortbow is null)
+        {
+            yield break;
+        }
+
+        for (int i = 0; i < PartyMembers.Count; i++)
+        {
+            PartyMembers[i].GlobalPosition = _partyStarts[i];
+        }
+
+        _wakeGoblins = new[] { scimitar, shortbow };
+        SetGoblinAi(true);
+        _wakePhase = true;
+        yield return IdleFrames;
+        Expect("the goblins stand idle while every party member is outside their awareness radius",
+            _wakeGoblins.All(goblin => goblin.AttackTarget is null && !goblin.IsMoving) && _goblinAttacks.Count == 0
+            && _woke.Count == 0);
+
+        // The fighter walks to a point inside both goblins' awareness radius, short of melee.
+        Vector2 destination = scimitar.GlobalPosition
+            + (Fighter.GlobalPosition - scimitar.GlobalPosition).Normalized() * StopShortTiles * Character.TileLength;
+        var camera = Root.GetNode<CameraRig>("Main/CameraRig");
+        camera.CentreOn((Fighter.GlobalPosition + destination) / 2);
+        yield return 2;
+        ClickPartyMember(MouseButton.Left, Fighter);
+        yield return 2;
+        Expect("the fighter alone is selected", Fighter.SelectionRingVisible && !Cleric.SelectionRingVisible
+            && !Rogue.SelectionRingVisible && !Wizard.SelectionRingVisible);
+        Click(MouseButton.Right, destination);
+        yield return 2;
+        Expect("the fighter walks towards the goblins", Fighter.IsMoving);
+
+        for (int i = 0; i < FightFrames && !(_woke.Count == 2 && GoblinAttacksBy(scimitar).Count > 0
+                                             && GoblinAttacksBy(shortbow).Count > 0 && GoblinHitSeen()); i++)
+        {
+            yield return 1;
+        }
+
+        _wakePhase = false;
+        foreach (Character goblin in _wakeGoblins)
+        {
+            float radius = AwarenessRadiusPixels(goblin);
+            Expect($"{goblin.DisplayName} wakes when the fighter comes within its awareness radius "
+                   + $"({(_woke.TryGetValue(goblin, out Wake? wake) ? $"{wake.Distance:0.0}" : "never")} px, radius {radius:0.0} px)",
+                wake is not null && wake.Distance <= radius && wake.Distance > radius - WakeSlack);
+            Expect($"{goblin.DisplayName} attacks the fighter, the nearest party member", wake?.Target == Fighter);
+        }
+
+        Expect($"the scimitar goblin walks to the fighter ({scimitar.DisplayName} moved {_goblinMoved.Contains(scimitar)})",
+            _goblinMoved.Contains(scimitar));
+        float reach = Character.TileLength + Fighter.FeetRadius + scimitar.FeetRadius;
+        GoblinAttack? melee = GoblinAttacksBy(scimitar).FirstOrDefault();
+        Expect($"the scimitar goblin attacks standing still within melee reach ({melee?.Distance:0.0} px, reach {reach:0.0} px)",
+            melee is { Moving: false } && melee.Distance <= reach + 0.5f);
+        GoblinAttack? shot = GoblinAttacksBy(shortbow).FirstOrDefault();
+        Expect($"the shortbow goblin shoots from where it stands, beyond melee reach ({shot?.Distance:0.0} px)",
+            shot is not null && shot.Distance > reach && !_goblinMoved.Contains(shortbow));
+
+        List<string> bad = _goblinAttacks.Select(attack => attack.Line).Where(line => !GoblinAttackLine.IsMatch(line))
+            .ToList();
+        Expect($"every goblin attack writes one line in the agreed format ({string.Join(" | ", bad)})",
+            _goblinAttacks.Count > 0 && bad.Count == 0);
+        Expect($"a goblin hits the fighter ({_goblinAttacks.Count} goblin attacks; needs the seed)", GoblinHitSeen());
+        Expect($"every goblin attack leaves the fighter's HP bar at the logged HP ({string.Join("; ", _fighterHpBarMismatches)})",
+            _fighterHpBarMismatches.Count == 0);
+        Expect($"the fighter's HP bar shrinks ({Fighter.HpBarFraction:0.00})", Fighter.HpBarFraction < 1f);
+    }
+
+    private static float AwarenessRadiusPixels(Character goblin) =>
+        ((Data.MonsterData)goblin.CharacterStats!).AwarenessRadiusTiles * Character.TileLength;
+
+    private float NearestPartyMemberDistance(Character goblin) =>
+        PartyMembers.Min(partyMember => partyMember.GlobalPosition.DistanceTo(goblin.GlobalPosition));
+
+    private List<GoblinAttack> GoblinAttacksBy(Character goblin) =>
+        _goblinAttacks.Where(attack => attack.Line.StartsWith(goblin.DisplayName + " → ")).ToList();
+
+    private bool GoblinHitSeen() => _goblinAttacks.Any(attack => attack.Line.Contains(" hit,") || attack.Line.Contains(" crit,"));
+
+    private void OnGoblinAttack(string line)
+    {
+        Character? goblin = _wakeGoblins.FirstOrDefault(g => line.StartsWith(g.DisplayName + " → "));
+        _goblinAttacks.Add(new GoblinAttack(line, goblin is null ? -1f : goblin.GlobalPosition.DistanceTo(Fighter.GlobalPosition),
+            goblin?.IsMoving ?? true));
+        Match match = GoblinAttackLine.Match(line);
+        if (match.Success && !Mathf.IsEqualApprox(Fighter.HpBarFraction, int.Parse(match.Groups["hp"].Value) / 12f))
+        {
+            _fighterHpBarMismatches.Add($"{line} shows {Fighter.HpBarFraction}");
+        }
+    }
+
+    private void TrackWake()
+    {
+        foreach (Character goblin in _wakeGoblins)
+        {
+            if (goblin.IsMoving)
+            {
+                _goblinMoved.Add(goblin);
+            }
+
+            if (!_woke.ContainsKey(goblin) && goblin.AttackTarget is { } target)
+            {
+                _woke[goblin] = new Wake(NearestPartyMemberDistance(goblin), target);
+            }
+        }
+    }
+
+    private sealed record Wake(float Distance, Character Target);
+
+    private sealed record GoblinAttack(string Line, float Distance, bool Moving);
 
     /// <summary>
     /// The rogue and wizard attack Goblin 2 from range. The rogue starts out of shortbow range, walks until in range
@@ -387,6 +584,12 @@ public partial class CombatCheck : HeadlessCheck
     {
         string line = lines[^1];
         GD.Print($"frame {_frame}: {line}");
+        if (_wakePhase)
+        {
+            OnGoblinAttack(line);
+            return;
+        }
+
         if (_rangedPhase)
         {
             OnRangedAttack(line);
