@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://data/WeaponData.cs" id="1_weapon"]
+
+[resource]
+script = ExtResource("1_weapon")
+Name = "Mace"
+DamageDice = "1d6"
+DamageType = "bludgeoning"
+Ability = 0
+AddsAbilityModifierToDamage = true
+RangeTiles = 1
+Reach = 0

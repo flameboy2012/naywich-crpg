@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CharacterStats" format=3]
+
+[ext_resource type="Script" path="res://data/CharacterStats.cs" id="1_stats"]
+[ext_resource type="Resource" path="res://data/attacks/fire_bolt.tres" id="2_attack"]
+
+[resource]
+script = ExtResource("1_stats")
+Name = "Wizard"
+Strength = 8
+Dexterity = 14
+Constitution = 13
+Intelligence = 15
+Wisdom = 12
+Charisma = 10
+MaxHp = 7
+SpeedFeet = 30
+ProficiencyBonus = 2
+Attack = ExtResource("2_attack")

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CharacterStats" format=3]
+
+[ext_resource type="Script" path="res://data/CharacterStats.cs" id="1_stats"]
+[ext_resource type="Resource" path="res://data/attacks/longsword.tres" id="2_attack"]
+[ext_resource type="Resource" path="res://data/armor/chain_mail.tres" id="3_armor"]
+
+[resource]
+script = ExtResource("1_stats")
+Name = "Fighter"
+Strength = 15
+Dexterity = 13
+Constitution = 14
+Intelligence = 8
+Wisdom = 12
+Charisma = 10
+MaxHp = 12
+SpeedFeet = 30
+ProficiencyBonus = 2
+Attack = ExtResource("2_attack")
+Armor = ExtResource("3_armor")

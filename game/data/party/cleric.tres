@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CharacterStats" format=3]
+
+[ext_resource type="Script" path="res://data/CharacterStats.cs" id="1_stats"]
+[ext_resource type="Resource" path="res://data/attacks/mace.tres" id="2_attack"]
+[ext_resource type="Resource" path="res://data/armor/chain_mail.tres" id="3_armor"]
+
+[resource]
+script = ExtResource("1_stats")
+Name = "Cleric"
+Strength = 14
+Dexterity = 10
+Constitution = 13
+Intelligence = 8
+Wisdom = 15
+Charisma = 12
+MaxHp = 9
+SpeedFeet = 30
+ProficiencyBonus = 2
+Attack = ExtResource("2_attack")
+Armor = ExtResource("3_armor")

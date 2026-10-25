@@ -1,3 +1,4 @@
+using Crpg.Core.Combat;
 using Crpg.Core.Movement;
 using Godot;
 
@@ -38,7 +39,7 @@ public partial class Character : CharacterBody2D
 
     /// <summary>
     /// Movement speed in tiles per second. 5e 30 ft per 6-second round = 1 tile per second (ADR 0001).
-    /// Tunable in the inspector, no code change needed.
+    /// Set from <see cref="CharacterStats"/> on ready; tune the speed there.
     /// </summary>
     [Export(PropertyHint.Range, "0.1,10,0.05,or_greater")]
     public float SpeedTilesPerSecond { get; set; } = 1f;
@@ -71,8 +72,47 @@ public partial class Character : CharacterBody2D
     [Export]
     public Color Tint { get; set; } = Colors.White;
 
+    /// <summary>
+    /// The character's stats and equipment, authored as a Resource. Converted once to <see cref="Stats"/> on ready;
+    /// its speed replaces <see cref="SpeedTilesPerSecond"/>.
+    /// </summary>
+    [Export]
+    public Data.CharacterStats? CharacterStats { get; set; }
+
+    /// <summary>The Core stats the rules see, converted from <see cref="CharacterStats"/>. Set once ready.</summary>
+    public Stats Stats { get; private set; } = null!;
+
+    /// <summary>The name the combat log uses, from the stats.</summary>
+    public string DisplayName => Stats.Name;
+
+    /// <summary>Current hit points. Characters start at full HP.</summary>
+    public int Hp { get; private set; }
+
+    public int MaxHp => Stats.MaxHp;
+
+    /// <summary>What the HP bar over the character's head shows: current HP over max HP.</summary>
+    public float HpBarFraction => _hpBar.Fraction;
+
+    /// <summary>True while the HP bar over the character's head is drawn.</summary>
+    public bool HpBarVisible => _hpBar.IsVisibleInTree();
+
+    private HpBar _hpBar = null!;
+
     public override void _Ready()
     {
+        if (CharacterStats is null)
+        {
+            GD.PushError($"Character {Name} has no CharacterStats.");
+        }
+        else
+        {
+            Stats = CharacterStats.ToCore();
+            SpeedTilesPerSecond = Stats.SpeedTilesPerSecond;
+            Hp = Stats.MaxHp;
+        }
+
+        _hpBar = GetNode<HpBar>("HpBar");
+        _hpBar.Fraction = Stats is null ? 0f : (float)Hp / MaxHp;
         GetNode<Sprite2D>("Sprite").Modulate = Tint;
         _selectionRing = GetNode<Sprite2D>("SelectionRing");
         _agent = GetNode<NavigationAgent2D>("NavigationAgent2D");

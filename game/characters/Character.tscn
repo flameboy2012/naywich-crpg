@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://characters/PlayerControl.cs" id="2_ctrl"]
 [ext_resource type="Texture2D" path="res://art/capsule.png" id="3_caps"]
 [ext_resource type="Texture2D" path="res://art/selection_ring.png" id="4_ring"]
+[ext_resource type="Script" path="res://characters/HpBar.cs" id="5_hp"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_feet"]
 radius = 8.0
@@ -24,6 +25,10 @@ texture = ExtResource("4_ring")
 [node name="Sprite" type="Sprite2D" parent="."]
 texture = ExtResource("3_caps")
 offset = Vector2(0, -24)
+
+[node name="HpBar" type="Node2D" parent="."]
+position = Vector2(0, -56)
+script = ExtResource("5_hp")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_feet")

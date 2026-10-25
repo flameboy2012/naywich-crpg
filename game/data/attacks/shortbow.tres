@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://data/WeaponData.cs" id="1_weapon"]
+
+[resource]
+script = ExtResource("1_weapon")
+Name = "Shortbow"
+DamageDice = "1d6"
+DamageType = "piercing"
+Ability = 1
+AddsAbilityModifierToDamage = true
+RangeTiles = 16
+Reach = 1
