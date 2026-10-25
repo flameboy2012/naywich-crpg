@@ -5,7 +5,7 @@ using Godot;
 namespace Crpg.Tools;
 
 /// <summary>
-/// Shared harness for the headless engine checks (SelectionCheck, MoveCheck, ObstacleCheck, MarkerCheck). Loads Main, waits for
+/// Shared harness for the headless engine checks (SelectionCheck, MoveCheck, ObstacleCheck, MarkerCheck, PathLineCheck). Loads Main, waits for
 /// the zone and navigation map to settle, then runs the check's steps, pushing real clicks through the viewport.
 /// Prints "&lt;Check&gt;: PASSED" and exits 0, or prints ERROR lines and exits 1.
 /// </summary>

@@ -24,6 +24,10 @@ public partial class SelectionController : Node
     [Export]
     public Node2D MoveMarkers { get; set; } = null!;
 
+    /// <summary>Where path lines are added, one per party member: a world-space node drawn above the zone.</summary>
+    [Export]
+    public Node2D PathLines { get; set; } = null!;
+
     private readonly SelectionModel _model = new();
 
     private Panel _box = null!;
@@ -49,6 +53,12 @@ public partial class SelectionController : Node
         var layer = new CanvasLayer { Name = "BoxSelectLayer" };
         layer.AddChild(_box);
         AddChild(layer);
+
+        // Every party member has entered the tree (and joined the group) before any node's _Ready.
+        foreach (PlayerControl partyMember in PartyMembers().Values)
+        {
+            PathLines.AddChild(new PathLine { Source = partyMember, Name = partyMember.Character.Name });
+        }
     }
 
     public override void _UnhandledInput(InputEvent @event)

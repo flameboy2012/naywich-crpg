@@ -29,8 +29,24 @@ public partial class PlayerControl : Node
     /// <summary>True if the area is this party member's click area.</summary>
     public bool OwnsClickArea(Area2D area) => area.GetParent() == _character;
 
+    /// <summary>The character this component controls.</summary>
+    public Character Character => _character;
+
+    /// <summary>True while the party member is in the selection, as last shown by <see cref="ShowSelected"/>.</summary>
+    public bool IsSelected { get; private set; }
+
+    /// <summary>True while the party member is walking to a destination.</summary>
+    public bool IsMoving => _character.IsMoving;
+
+    /// <summary>The navigation path points the party member has still to walk to, in global coordinates.</summary>
+    public Vector2[] RemainingPath => _character.RemainingPath;
+
     /// <summary>Shows whether the party member is in the selection.</summary>
-    public void ShowSelected(bool selected) => _character.SelectionRingVisible = selected;
+    public void ShowSelected(bool selected)
+    {
+        IsSelected = selected;
+        _character.SelectionRingVisible = selected;
+    }
 
     /// <summary>Carries out a move order.</summary>
     public void MoveTo(Vector2 globalPosition) => _character.MoveTo(globalPosition);

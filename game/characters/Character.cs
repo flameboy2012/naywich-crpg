@@ -100,6 +100,25 @@ public partial class Character : CharacterBody2D
     public Vector2 PathEnd => _agent.GetFinalPosition();
 
     /// <summary>
+    /// The navigation path points still ahead of the character, next one first, in global coordinates. Empty when the
+    /// character is not moving.
+    /// </summary>
+    public Vector2[] RemainingPath
+    {
+        get
+        {
+            if (!IsMoving)
+            {
+                return [];
+            }
+
+            Vector2[] path = _agent.GetCurrentNavigationPath();
+            int next = _agent.GetCurrentNavigationPathIndex();
+            return next < path.Length ? path[next..] : [];
+        }
+    }
+
+    /// <summary>
     /// Walks to a global position along the zone's navigation mesh. Calling it again replaces the current
     /// destination. An unreachable point sends the character to the closest reachable point.
     /// </summary>
