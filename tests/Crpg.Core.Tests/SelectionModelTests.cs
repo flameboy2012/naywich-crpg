@@ -6,6 +6,7 @@ public class SelectionModelTests
 {
     private static readonly PartyMemberId Aldric = new("aldric");
     private static readonly PartyMemberId Brenna = new("brenna");
+    private static readonly PartyMemberId Cerys = new("cerys");
 
     private static readonly WorldPosition Somewhere = new(10f, 20f);
 
@@ -176,5 +177,68 @@ public class SelectionModelTests
 
         Assert.Empty(result.Selection);
         Assert.Empty(result.Orders);
+    }
+
+    [Fact]
+    public void Box_select_replaces_the_selection_with_the_party_members_inside_the_box()
+    {
+        var model = new SelectionModel();
+        model.Click(LeftClickOn(Aldric));
+
+        ClickResult result = model.BoxSelect(new BoxSelectEvent(new[] { Brenna, Cerys }));
+
+        Assert.Equal(new[] { Brenna, Cerys }, result.Selection.OrderBy(id => id.Value));
+        Assert.Empty(result.Orders);
+    }
+
+    [Fact]
+    public void Shift_box_select_adds_the_party_members_inside_the_box_to_the_selection()
+    {
+        var model = new SelectionModel();
+        model.Click(LeftClickOn(Aldric));
+
+        ClickResult result = model.BoxSelect(new BoxSelectEvent(new[] { Brenna, Cerys }, Shift: true));
+
+        Assert.Equal(new[] { Aldric, Brenna, Cerys }, result.Selection.OrderBy(id => id.Value));
+        Assert.Empty(result.Orders);
+    }
+
+    [Fact]
+    public void An_empty_box_select_clears_the_selection()
+    {
+        var model = new SelectionModel();
+        model.Click(LeftClickOn(Aldric));
+
+        ClickResult result = model.BoxSelect(new BoxSelectEvent(Array.Empty<PartyMemberId>()));
+
+        Assert.Empty(result.Selection);
+        Assert.Empty(result.Orders);
+    }
+
+    [Fact]
+    public void An_empty_shift_box_select_leaves_the_selection_unchanged()
+    {
+        var model = new SelectionModel();
+        model.Click(LeftClickOn(Aldric));
+        model.Click(ShiftClickOn(Brenna));
+
+        ClickResult result = model.BoxSelect(new BoxSelectEvent(Array.Empty<PartyMemberId>(), Shift: true));
+
+        Assert.Equal(new[] { Aldric, Brenna }, result.Selection.OrderBy(id => id.Value));
+        Assert.Empty(result.Orders);
+    }
+
+    [Fact]
+    public void Box_select_issues_no_orders_even_with_party_members_already_selected()
+    {
+        var model = new SelectionModel();
+        model.Click(LeftClickOn(Aldric));
+        model.Click(RightClickOnGround(64f, 32f));
+
+        ClickResult plain = model.BoxSelect(new BoxSelectEvent(new[] { Aldric, Brenna }));
+        ClickResult shift = model.BoxSelect(new BoxSelectEvent(new[] { Cerys }, Shift: true));
+
+        Assert.Empty(plain.Orders);
+        Assert.Empty(shift.Orders);
     }
 }

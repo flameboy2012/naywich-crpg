@@ -84,6 +84,42 @@ public abstract partial class HeadlessCheck : SceneTree
             true);
     }
 
+    /// <summary>Presses the left button at a world point and moves the mouse to another, without releasing.</summary>
+    protected void BeginDrag(Vector2 fromWorld, Vector2 toWorld, bool shift = false)
+    {
+        Vector2 from = Root.GetCanvasTransform() * fromWorld;
+        Vector2 to = Root.GetCanvasTransform() * toWorld;
+        Root.PushInput(
+            new InputEventMouseButton
+            {
+                ButtonIndex = MouseButton.Left, Pressed = true, Position = from, ShiftPressed = shift,
+                ButtonMask = MouseButtonMask.Left,
+            },
+            true);
+        Root.PushInput(
+            new InputEventMouseMotion
+            {
+                Position = to, Relative = to - from, ShiftPressed = shift, ButtonMask = MouseButtonMask.Left,
+            },
+            true);
+    }
+
+    /// <summary>Releases the left button at a world point, ending a drag begun with <see cref="BeginDrag"/>.</summary>
+    protected void EndDrag(Vector2 atWorld, bool shift = false)
+    {
+        Vector2 at = Root.GetCanvasTransform() * atWorld;
+        Root.PushInput(
+            new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false, Position = at, ShiftPressed = shift },
+            true);
+    }
+
+    /// <summary>Presses the left button at one world point, drags to another and releases there.</summary>
+    protected void Drag(Vector2 fromWorld, Vector2 toWorld, bool shift = false)
+    {
+        BeginDrag(fromWorld, toWorld, shift);
+        EndDrag(toWorld, shift);
+    }
+
     /// <summary>Clicks on the first party member's capsule.</summary>
     protected void ClickPartyMember(MouseButton button) => ClickPartyMember(button, PartyMember);
 

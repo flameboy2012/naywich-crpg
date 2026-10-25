@@ -67,7 +67,65 @@ public partial class SelectionCheck : HeadlessCheck
         ClickPartyMember(MouseButton.Left, first);
         yield return 1;
         Expect("left-click without shift selects only the clicked party member", RingsShow(first));
+
+        foreach (int step in BoxSelectSteps(onGround))
+        {
+            yield return step;
+        }
     }
+
+    private IEnumerable<int> BoxSelectSteps(Vector2 onGround)
+    {
+        SelectionController controller = Root.GetNode<SelectionController>("Main/SelectionController");
+        Character first = PartyMembers[0];
+        Character second = PartyMembers[1];
+        Character third = PartyMembers[2];
+        (Vector2 boxFrom, Vector2 boxTo) = BoxAround(first, second);
+        Expect("only the first two party members' feet are inside the test box",
+            PartyMembers.All(partyMember =>
+                Inside(partyMember.GlobalPosition, boxFrom, boxTo) == (partyMember == first || partyMember == second)));
+
+        Click(MouseButton.Left, onGround);
+        yield return 1;
+        Expect("box hidden before dragging", !controller.BoxVisible);
+
+        BeginDrag(boxFrom, boxTo);
+        yield return 1;
+        Expect("box shown while dragging", controller.BoxVisible);
+
+        EndDrag(boxTo);
+        yield return 1;
+        Expect("box hidden after release", !controller.BoxVisible);
+        Expect("drag around two party members selects exactly those two", RingsShow(first, second));
+
+        ClickPartyMember(MouseButton.Left, third);
+        Drag(boxFrom, boxTo, shift: true);
+        yield return 1;
+        Expect("shift+drag adds the party members in the box", RingsShow(first, second, third));
+
+        Drag(onGround, onGround + new Vector2(40, 30));
+        yield return 1;
+        Expect("an empty box clears the selection", RingsShow());
+
+        ClickPartyMember(MouseButton.Left, first);
+        Vector2 onThird = third.GlobalPosition + new Vector2(0, -24);
+        BeginDrag(onThird, onThird + new Vector2(3, 2));
+        yield return 1;
+        Expect("box hidden for a drag under the threshold", !controller.BoxVisible);
+        EndDrag(onThird + new Vector2(3, 2));
+        yield return 1;
+        Expect("a drag under the threshold counts as a click", RingsShow(third));
+    }
+
+    /// <summary>World corners of a box just around two party members' feet.</summary>
+    private static (Vector2 From, Vector2 To) BoxAround(Character a, Character b)
+    {
+        var margin = new Vector2(8, 8);
+        return (a.GlobalPosition.Min(b.GlobalPosition) - margin, a.GlobalPosition.Max(b.GlobalPosition) + margin);
+    }
+
+    private static bool Inside(Vector2 point, Vector2 from, Vector2 to) =>
+        new Rect2(from, to - from).Abs().HasPoint(point);
 
     /// <summary>True when exactly the given party members' rings are visible and every other ring is hidden.</summary>
     private bool RingsShow(params Character[] selected) =>

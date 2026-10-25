@@ -70,5 +70,17 @@ public sealed class SelectionModel
         return CurrentResult();
     }
 
+    /// <summary>
+    /// Applies one box select and returns the selection after it. Without shift the selection becomes exactly the
+    /// party members in the box; with shift they are added to it. Box select never issues orders.
+    /// </summary>
+    public ClickResult BoxSelect(BoxSelectEvent box)
+    {
+        _selection = box.Shift
+            ? _selection.Union(box.PartyMembers)
+            : box.PartyMembers.ToImmutableHashSet();
+        return CurrentResult();
+    }
+
     private ClickResult CurrentResult() => new(_selection, NoOrders);
 }
