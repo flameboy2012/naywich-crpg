@@ -307,6 +307,7 @@ Each zone: TileMapLayers (ground, objects), NavigationRegion2D, `EntryPoint` mar
 game/  (res://)
   autoload/   characters/   zones/   data/   ui/   art/
   data/weapons/  data/monsters/  data/zones/  data/factions/  data/quests/
+  tools/   engine check and generator scripts (headless checks, art and zone generators)
 ```
 
 ## Milestones
