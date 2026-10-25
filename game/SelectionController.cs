@@ -15,9 +15,6 @@ namespace Crpg;
 /// </summary>
 public partial class SelectionController : Node
 {
-    /// <summary>Physics layer 3: each Character's ClickArea, which covers the whole capsule sprite.</summary>
-    private const uint ClickAreaLayerMask = 1u << 2;
-
     /// <summary>How far (screen px) a left press must move before it is a box select rather than a click.</summary>
     [Export]
     public float DragThreshold { get; set; } = 6f;
@@ -211,14 +208,23 @@ public partial class SelectionController : Node
     /// <summary>The box select rectangle (screen px) between where the left button went down and the mouse.</summary>
     private static Rect2 Box(Vector2 pressedAt, Vector2 mouse) => new Rect2(pressedAt, mouse - pressedAt).Abs();
 
-    /// <summary>Sends a click at a screen point to the model, resolved to a party member or ground.</summary>
+    /// <summary>
+    /// Sends a click at a screen point to the model, resolved to a party member, a living enemy or ground. Both kinds
+    /// of click area win over the ground. Where they overlap, a right-click takes the enemy (to attack it) and a
+    /// left-click the party member (to select them).
+    /// </summary>
     private void Click(ClickButton button, Vector2 screen, bool shift)
     {
         Vector2 world = GetViewport().GetCanvasTransform().AffineInverse() * screen;
         Dictionary<PartyMemberId, PlayerControl> partyMembers = PartyMembers();
-        ClickTarget target = PartyMemberAt(world, partyMembers.Values) is { } hit
+        ClickTarget? partyMember = PartyMemberAt(world, partyMembers.Values) is { } hit
             ? new ClickTarget.PartyMember(hit.PartyMemberId, hit.GlobalPosition.ToWorldPosition())
-            : new ClickTarget.Ground(world.ToWorldPosition());
+            : null;
+        ClickTarget? enemy = EnemyAt(world) is { } struck
+            ? new ClickTarget.Enemy(struck.EnemyId, struck.Character.GlobalPosition.ToWorldPosition())
+            : null;
+        ClickTarget target = (button == ClickButton.Right ? enemy ?? partyMember : partyMember ?? enemy)
+                             ?? new ClickTarget.Ground(world.ToWorldPosition());
 
         ClickResult result = _model.Click(
             new ClickEvent(button, target, shift) { PartyMemberPositions = Positions(partyMembers) });
@@ -246,26 +252,42 @@ public partial class SelectionController : Node
     private static Dictionary<PartyMemberId, WorldPosition> Positions(Dictionary<PartyMemberId, PlayerControl> partyMembers) =>
         partyMembers.ToDictionary(entry => entry.Key, entry => entry.Value.GlobalPosition.ToWorldPosition());
 
+    private Dictionary<EnemyId, AiControl> Enemies() =>
+        GetTree().GetNodesInGroup(AiControl.EnemiesGroup).OfType<AiControl>()
+            .ToDictionary(enemy => enemy.EnemyId);
+
     /// <summary>The party member whose click area contains the world point, if any.</summary>
-    private PlayerControl? PartyMemberAt(Vector2 world, IEnumerable<PlayerControl> partyMembers)
+    private PlayerControl? PartyMemberAt(Vector2 world, IEnumerable<PlayerControl> partyMembers) =>
+        ClickAreasAt(world, Character.PartyMemberClickLayer)
+            .Select(area => partyMembers.FirstOrDefault(partyMember => partyMember.OwnsClickArea(area)))
+            .FirstOrDefault(partyMember => partyMember is not null);
+
+    /// <summary>
+    /// The living enemy whose click area contains the world point, if any. Dead enemies have no click area on the
+    /// enemy layer, so they are never found.
+    /// </summary>
+    private AiControl? EnemyAt(Vector2 world)
+    {
+        List<AiControl> enemies = Enemies().Values.ToList();
+        return ClickAreasAt(world, Character.EnemyClickLayer)
+            .Select(area => enemies.FirstOrDefault(enemy => enemy.OwnsClickArea(area)))
+            .FirstOrDefault(enemy => enemy is not null && !enemy.Character.IsDead);
+    }
+
+    /// <summary>The click areas on the given physics layer that contain the world point.</summary>
+    private IEnumerable<Area2D> ClickAreasAt(Vector2 world, uint layer)
     {
         var query = new PhysicsPointQueryParameters2D
         {
             Position = world,
             CollideWithAreas = true,
             CollideWithBodies = false,
-            CollisionMask = ClickAreaLayerMask,
+            CollisionMask = layer,
         };
-        foreach (var hit in GetViewport().World2D.DirectSpaceState.IntersectPoint(query))
-        {
-            if (hit["collider"].AsGodotObject() is Area2D area
-                && partyMembers.FirstOrDefault(partyMember => partyMember.OwnsClickArea(area)) is { } partyMember)
-            {
-                return partyMember;
-            }
-        }
-
-        return null;
+        return GetViewport().World2D.DirectSpaceState.IntersectPoint(query)
+            .Select(hit => hit["collider"].AsGodotObject())
+            .OfType<Area2D>()
+            .ToList();
     }
 
     private void Apply(ClickResult result, Dictionary<PartyMemberId, PlayerControl> partyMembers)
@@ -278,12 +300,23 @@ public partial class SelectionController : Node
         SelectionChanged?.Invoke(result.Selection);
 
         List<PlayerControl> moved = new();
+        Dictionary<EnemyId, AiControl>? enemies = null;
         foreach (Order order in result.Orders)
         {
-            if (order is MoveOrder move && partyMembers.TryGetValue(move.PartyMember, out PlayerControl? partyMember))
+            if (!partyMembers.TryGetValue(order.PartyMember, out PlayerControl? partyMember))
             {
-                partyMember.MoveTo(move.Destination.ToVector2());
-                moved.Add(partyMember);
+                continue;
+            }
+
+            switch (order)
+            {
+                case MoveOrder move:
+                    partyMember.MoveTo(move.Destination.ToVector2());
+                    moved.Add(partyMember);
+                    break;
+                case AttackOrder attack when (enemies ??= Enemies()).TryGetValue(attack.Target, out AiControl? enemy):
+                    partyMember.Attack(enemy.Character);
+                    break;
             }
         }
 

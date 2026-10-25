@@ -47,6 +47,20 @@ public partial class BuildTestZone : SceneTree
         new(42, 11, 1, 3),   // L, leg
     };
 
+    private const string GoblinStatsPath = "res://data/monsters/goblin_scimitar.tres";
+
+    /// <summary>Placeholder goblin tint: a muddy green, distinct from the four party member tints.</summary>
+    private static readonly Color GoblinTint = new(0.45f, 0.7f, 0.25f);
+
+    /// <summary>
+    /// Goblins, as (node name, combat log name, tile). About 15 tiles east of the party start at tile (8, 12), well
+    /// past the 200 px moves the other headless checks make, and off the straight path from the party to them.
+    /// </summary>
+    private static readonly (string Node, string Name, Vector2I Tile)[] Goblins =
+    {
+        ("Goblin1", "Goblin 1", new Vector2I(22, 8)),
+    };
+
     private Node2D _zone = null!;
     private NavigationRegion2D _region = null!;
     private int _frame;
@@ -80,6 +94,7 @@ public partial class BuildTestZone : SceneTree
         _region.Owner = _zone;
         _region.AddChild(ground);
         ground.Owner = _zone;
+        AddGoblins(ground);
         Root.AddChild(_zone);   // baking needs the nodes in the tree; bake on a later frame
     }
 
@@ -144,6 +159,37 @@ public partial class BuildTestZone : SceneTree
 
         Check(ResourceSaver.Save(tileSet, TileSetPath), TileSetPath);
         return GD.Load<TileSet>(TileSetPath);   // reload so the scene references the file, not an embedded copy
+    }
+
+    /// <summary>
+    /// Adds each goblin as an instance of the shared character scene with the goblin's tint and stats and an
+    /// <see cref="AiControl"/>. They sit outside the navigation region, so the bake doesn't carve them out.
+    /// </summary>
+    private void AddGoblins(TileMapLayer ground)
+    {
+        var scene = GD.Load<PackedScene>(Character.ScenePath);
+        var stats = GD.Load<Data.CharacterStats>(GoblinStatsPath);
+        foreach ((string node, string name, Vector2I tile) in Goblins)
+        {
+            if (IsObstacle(tile))
+            {
+                GD.PushError($"BuildTestZone: goblin {name} stands on an obstacle tile {tile}");
+            }
+
+            var goblin = scene.Instantiate<Character>(PackedScene.GenEditState.Instance);
+            goblin.Name = node;
+            goblin.InstanceName = name;
+            goblin.Tint = GoblinTint;
+            goblin.CharacterStats = stats;
+            goblin.Position = ground.MapToLocal(tile);
+            _zone.AddChild(goblin);
+            goblin.Owner = _zone;
+
+            var control = new AiControl { Name = "AiControl" };
+            goblin.AddChild(control);
+            control.Owner = _zone;
+            GD.Print($"{name} at tile {tile}, position {goblin.Position}");
+        }
     }
 
     private static float CharacterFeetRadius()

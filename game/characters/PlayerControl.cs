@@ -5,7 +5,7 @@ namespace Crpg;
 
 /// <summary>
 /// Control component that makes its parent Character a party member: the player gives it orders
-/// through the SelectionController. AI control (M2) will be a sibling component type.
+/// through the SelectionController. <see cref="AiControl"/> is the sibling component type for enemies.
 /// </summary>
 public partial class PlayerControl : Node
 {
@@ -40,6 +40,9 @@ public partial class PlayerControl : Node
 
     /// <summary>Carries out a move order.</summary>
     public void MoveTo(Vector2 globalPosition) => _character.MoveTo(globalPosition);
+
+    /// <summary>Carries out an attack order on an enemy.</summary>
+    public void Attack(Character enemy) => _character.Attack(enemy);
 
     /// <summary>Where the party member's current move really ends: the final point of their navigation path.</summary>
     public Vector2 PathEnd => _character.PathEnd;

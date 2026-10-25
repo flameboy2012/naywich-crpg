@@ -11,6 +11,7 @@
 [ext_resource type="Resource" path="res://data/party/cleric.tres" id="9_cle"]
 [ext_resource type="Resource" path="res://data/party/rogue.tres" id="10_rog"]
 [ext_resource type="Resource" path="res://data/party/wizard.tres" id="11_wiz"]
+[ext_resource type="Script" path="res://characters/PlayerControl.cs" id="12_ctrl"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1")
@@ -30,20 +31,32 @@ position = Vector2(-96, 336)
 Tint = Color(0.3, 0.5, 0.95, 1)
 CharacterStats = ExtResource("8_fig")
 
+[node name="PlayerControl" type="Node" parent="Party/PartyMember1"]
+script = ExtResource("12_ctrl")
+
 [node name="PartyMember2" parent="Party" instance=ExtResource("2_char")]
 position = Vector2(-32, 368)
 Tint = Color(0.9, 0.3, 0.25, 1)
 CharacterStats = ExtResource("9_cle")
+
+[node name="PlayerControl" type="Node" parent="Party/PartyMember2"]
+script = ExtResource("12_ctrl")
 
 [node name="PartyMember3" parent="Party" instance=ExtResource("2_char")]
 position = Vector2(-160, 368)
 Tint = Color(0.7, 0.4, 0.9, 1)
 CharacterStats = ExtResource("10_rog")
 
+[node name="PlayerControl" type="Node" parent="Party/PartyMember3"]
+script = ExtResource("12_ctrl")
+
 [node name="PartyMember4" parent="Party" instance=ExtResource("2_char")]
 position = Vector2(-96, 400)
 Tint = Color(0.2, 0.8, 0.8, 1)
 CharacterStats = ExtResource("11_wiz")
+
+[node name="PlayerControl" type="Node" parent="Party/PartyMember4"]
+script = ExtResource("12_ctrl")
 
 [node name="CameraRig" type="Node2D" parent="." node_paths=PackedStringArray("SelectionController")]
 process_mode = 3

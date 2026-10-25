@@ -20,6 +20,12 @@ public partial class Rules : Node
     /// <summary>The combat rules, rolling through the seeded RNG.</summary>
     public CombatRules Combat { get; private set; } = null!;
 
+    /// <summary>
+    /// The global combat speed (ADR 0003): attack cooldowns run this many times faster than real time. Provisional
+    /// until the M2 play-test.
+    /// </summary>
+    public float CombatSpeed { get; set; } = CombatRules.NormalCombatSpeed;
+
     /// <summary>The combat log's lines.</summary>
     public CombatLog Log { get; private set; } = null!;
 
