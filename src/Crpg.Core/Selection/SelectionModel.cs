@@ -32,11 +32,18 @@ public sealed class SelectionModel
     };
 
     /// <summary>
-    /// Right-click on ground, or on a party member's spot, sends every selected party member there, each to their own
-    /// spread slot; the selection is unchanged.
+    /// Right-click on a living enemy orders every selected party member to attack it. Right-click on ground, or on a
+    /// party member's spot, sends every selected party member there, each to their own spread slot. The selection is
+    /// unchanged.
     /// </summary>
     private ClickResult RightClick(ClickTarget target, IReadOnlyDictionary<PartyMemberId, WorldPosition> standing)
     {
+        if (target is ClickTarget.Enemy enemy)
+        {
+            Order[] attacks = _selection.Select(partyMember => (Order)new AttackOrder(partyMember, enemy.Id)).ToArray();
+            return new ClickResult(_selection, attacks);
+        }
+
         WorldPosition? destination = target switch
         {
             ClickTarget.Ground ground => ground.Position,

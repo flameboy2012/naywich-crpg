@@ -1,3 +1,5 @@
+using Crpg.Core.Selection;
+
 namespace Crpg.Core.Combat;
 
 /// <summary>
@@ -8,6 +10,18 @@ public sealed class CombatRules(IDiceRoller dice)
 {
     public const int NaturalTwenty = 20;
     public const int NaturalOne = 1;
+
+    /// <summary>The default global combat speed (ADR 0003): attack cooldowns run in plain real seconds.</summary>
+    public const float NormalCombatSpeed = 1f;
+
+    /// <summary>
+    /// True when the target is within the attack's range: the distance between the two characters' feet is at most the
+    /// range in tiles times the grid-step length plus both feet radii, so bodies that touch are always in melee reach.
+    /// </summary>
+    public static bool InRange(WorldPosition attackerFeet, float attackerFeetRadius, WorldPosition targetFeet,
+        float targetFeetRadius, Attack attack) =>
+        attackerFeet.DistanceTo(targetFeet)
+        <= attack.RangeTiles * TileScale.GridStepLength + attackerFeetRadius + targetFeetRadius;
 
     /// <summary>Rolls the dice and sums them.</summary>
     public int Roll(Dice toRoll)

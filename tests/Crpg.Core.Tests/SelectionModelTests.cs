@@ -486,4 +486,56 @@ public class SelectionModelTests
 
         Assert.Equal(new Order[] { new MoveOrder(Brenna, new WorldPosition(300f, 120f)) }, result.Orders);
     }
+
+    private static readonly EnemyId Goblin = new("goblin1");
+
+    private static ClickEvent ClickOnEnemy(ClickButton button, bool shift = false) =>
+        new(button, new ClickTarget.Enemy(Goblin, new WorldPosition(400f, 200f)), shift);
+
+    [Fact]
+    public void Right_click_on_an_enemy_gives_each_selected_party_member_an_attack_order_on_it()
+    {
+        SelectionModel model = ModelWith(Aldric, Brenna);
+
+        ClickResult result = model.Click(ClickOnEnemy(ClickButton.Right));
+
+        Assert.Equal(
+            new Order[] { new AttackOrder(Aldric, Goblin), new AttackOrder(Brenna, Goblin) },
+            result.Orders.OrderBy(order => order.PartyMember.Value));
+        Assert.Equal(new[] { Aldric, Brenna }, result.Selection.OrderBy(id => id.Value));
+    }
+
+    [Fact]
+    public void Right_click_on_an_enemy_gives_no_move_orders()
+    {
+        SelectionModel model = ModelWith(Aldric);
+
+        ClickResult result = model.Click(ClickOnEnemy(ClickButton.Right));
+
+        Assert.DoesNotContain(result.Orders, order => order is MoveOrder);
+    }
+
+    [Fact]
+    public void Right_click_on_an_enemy_with_nobody_selected_gives_no_orders()
+    {
+        var model = new SelectionModel(NoPortraitSlots);
+
+        ClickResult result = model.Click(ClickOnEnemy(ClickButton.Right));
+
+        Assert.Empty(result.Orders);
+    }
+
+    [Fact]
+    public void Left_click_on_an_enemy_changes_nothing()
+    {
+        SelectionModel model = ModelWith(Aldric, Brenna);
+
+        ClickResult plain = model.Click(ClickOnEnemy(ClickButton.Left));
+        ClickResult shifted = model.Click(ClickOnEnemy(ClickButton.Left, shift: true));
+
+        Assert.Equal(new[] { Aldric, Brenna }, plain.Selection.OrderBy(id => id.Value));
+        Assert.Equal(new[] { Aldric, Brenna }, shifted.Selection.OrderBy(id => id.Value));
+        Assert.Empty(plain.Orders);
+        Assert.Empty(shifted.Orders);
+    }
 }
