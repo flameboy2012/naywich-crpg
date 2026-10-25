@@ -43,8 +43,11 @@ public partial class Character : CharacterBody2D
     /// <summary>The body colour at the start of a hit flash: an over-bright pulse of the tint.</summary>
     private static readonly Color HitFlashColour = new(2.2f, 2.2f, 2.2f, 1f);
 
-    /// <summary>The body colour of a dead enemy.</summary>
+    /// <summary>The body colour of a dead enemy or a downed party member.</summary>
     private static readonly Color DeadColour = new(0.42f, 0.42f, 0.42f, 1f);
+
+    /// <summary>How far (radians) a downed party member's body turns to lie on the ground.</summary>
+    private const float LyingRotation = Mathf.Pi / 2;
 
     private Sprite2D _sprite = null!;
     private Sprite2D _selectionRing = null!;
@@ -132,6 +135,15 @@ public partial class Character : CharacterBody2D
     /// <summary>True for an enemy at 0 HP: its grey body stays where it fell, can't be clicked and takes no part.</summary>
     public bool IsDead { get; private set; }
 
+    /// <summary>
+    /// True for a party member at 0 HP: they stay where they fell, greyed and lying down, can't be selected or
+    /// ordered, and enemies ignore them. They get up at 1 HP at combat end.
+    /// </summary>
+    public bool IsDown { get; private set; }
+
+    /// <summary>Raised when this party member goes down or gets up.</summary>
+    public event System.Action<Character>? DownChanged;
+
     /// <summary>The character this one has an attack order on, or null.</summary>
     public Character? AttackTarget { get; private set; }
 
@@ -149,6 +161,9 @@ public partial class Character : CharacterBody2D
 
     /// <summary>True while the character's click area can be clicked: never for a dead enemy.</summary>
     public bool Clickable => _clickArea.CollisionLayer != 0;
+
+    /// <summary>The middle of the body's click area, in global coordinates: where a click hits it, standing or lying.</summary>
+    public Vector2 BodyCentre => _clickArea.GetNode<Node2D>("CollisionShape2D").GlobalPosition;
 
     public override void _Ready()
     {
@@ -225,6 +240,11 @@ public partial class Character : CharacterBody2D
     /// </summary>
     public void MoveTo(Vector2 globalPosition)
     {
+        if (IsDown)
+        {
+            return;
+        }
+
         ClearAttackTarget();
         StartMove(globalPosition);
     }
@@ -232,11 +252,11 @@ public partial class Character : CharacterBody2D
     /// <summary>
     /// An attack order: walks until the target is in range of the equipped attack, then attacks once per attack
     /// cooldown until the target is dead, and then goes idle. It replaces any earlier order but never resets the
-    /// cooldown. A dead target is ignored.
+    /// cooldown. A dead or downed target is ignored, and a downed party member takes no orders.
     /// </summary>
     public void Attack(Character target)
     {
-        if (target == this || target.IsDead || IsDead)
+        if (target == this || target.IsDead || target.IsDown || IsDead || IsDown)
         {
             return;
         }
@@ -290,10 +310,12 @@ public partial class Character : CharacterBody2D
         _agent.Velocity = GlobalPosition.DirectionTo(next) * SpeedPixelsPerSecond;
     }
 
-    /// <summary>One frame of an attack order: go idle once the target is dead, attack when in range, else close in.</summary>
+    /// <summary>
+    /// One frame of an attack order: go idle once the target is dead or down, attack when in range, else close in.
+    /// </summary>
     private void UpdateAttack(Character target)
     {
-        if (!IsInstanceValid(target) || target.IsDead)
+        if (!IsInstanceValid(target) || target.IsDead || target.IsDown)
         {
             ClearAttackTarget();
             Stop();
@@ -344,7 +366,10 @@ public partial class Character : CharacterBody2D
         }
     }
 
-    /// <summary>Applies an attack made on this character: on a hit, loses HP, flashes, and an enemy at 0 HP dies.</summary>
+    /// <summary>
+    /// Applies an attack made on this character: on a hit, loses HP and flashes. At 0 HP an enemy dies and a party
+    /// member goes down.
+    /// </summary>
     private void TakeHit(AttackResult result)
     {
         if (!result.Hit)
@@ -358,6 +383,10 @@ public partial class Character : CharacterBody2D
         {
             Die();
         }
+        else if (Hp == 0)
+        {
+            GoDown();
+        }
 
         Flash();
     }
@@ -368,7 +397,48 @@ public partial class Character : CharacterBody2D
         _flash?.Kill();
         _sprite.Modulate = HitFlashColour;
         _flash = CreateTween();
-        _flash.TweenProperty(_sprite, "modulate", IsDead ? DeadColour : Tint, HitFlashSeconds);
+        _flash.TweenProperty(_sprite, "modulate", RestingColour, HitFlashSeconds);
+    }
+
+    /// <summary>The body colour between hit flashes: grey when dead or down, else the tint.</summary>
+    private Color RestingColour => IsDead || IsDown ? DeadColour : Tint;
+
+    /// <summary>
+    /// A party member at 0 HP: grey and lying where they fell, no longer steered around, and no longer acting on any
+    /// order. Their click area lies down with the body, so a click on it still finds them.
+    /// </summary>
+    private void GoDown()
+    {
+        IsDown = true;
+        _sprite.Modulate = DeadColour;
+        _sprite.Rotation = LyingRotation;
+        _clickArea.Rotation = LyingRotation;
+        _agent.AvoidanceEnabled = false;
+        ClearAttackTarget();
+        Stop();
+        DownChanged?.Invoke(this);
+    }
+
+    /// <summary>
+    /// At combat end a downed party member gets up at 1 HP (<see cref="CombatRules.HpAtCombatEnd"/>), standing in
+    /// their tint again and able to take orders. Does nothing for a party member who is up.
+    /// </summary>
+    public void GetUp()
+    {
+        if (!IsDown)
+        {
+            return;
+        }
+
+        IsDown = false;
+        Hp = CombatRules.HpAtCombatEnd(Hp);
+        _hpBar.Fraction = (float)Hp / MaxHp;
+        _flash?.Kill();
+        _sprite.Modulate = Tint;
+        _sprite.Rotation = 0f;
+        _clickArea.Rotation = 0f;
+        _agent.AvoidanceEnabled = true;
+        DownChanged?.Invoke(this);
     }
 
     /// <summary>An enemy at 0 HP: grey, unclickable, no longer steered around, and no longer attacking.</summary>

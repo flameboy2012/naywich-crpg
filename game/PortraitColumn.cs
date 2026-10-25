@@ -48,12 +48,35 @@ public partial class PortraitColumn : VBoxContainer
             portrait.DoubleClicked += OnDoubleClicked;
             AddChild(portrait);
             _portraits.Add((portrait, partyMember));
+            partyMember.Character.DownChanged += ShowDown;
         }
 
         SelectionController.SelectionChanged += ShowSelection;
     }
 
-    public override void _ExitTree() => SelectionController.SelectionChanged -= ShowSelection;
+    public override void _ExitTree()
+    {
+        SelectionController.SelectionChanged -= ShowSelection;
+        foreach ((_, PlayerControl partyMember) in _portraits)
+        {
+            if (IsInstanceValid(partyMember.Character))
+            {
+                partyMember.Character.DownChanged -= ShowDown;
+            }
+        }
+    }
+
+    /// <summary>Greys out a downed party member's portrait, and restores it when they get up.</summary>
+    private void ShowDown(Character character)
+    {
+        foreach ((Portrait portrait, PlayerControl partyMember) in _portraits)
+        {
+            if (partyMember.Character == character)
+            {
+                portrait.ShowsDown = character.IsDown;
+            }
+        }
+    }
 
     /// <summary>Selects only the party member in the slot, then centres the camera on them, clamped.</summary>
     private void OnDoubleClicked(int slot)

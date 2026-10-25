@@ -81,6 +81,10 @@ public partial class SelectionController : Node
             .Select(partyMember => partyMember.GetNode<PlayerControl>("PlayerControl"))
             .ToArray();
         _model = new SelectionModel(PortraitSlots.Select(partyMember => partyMember.PartyMemberId).ToArray());
+        foreach (PlayerControl partyMember in PortraitSlots)
+        {
+            partyMember.Character.DownChanged += OnDownChanged;
+        }
 
         // Every party member has entered the tree (and joined the group) before any node's _Ready.
         foreach (PlayerControl partyMember in PartyMembers().Values)
@@ -95,8 +99,27 @@ public partial class SelectionController : Node
     /// </summary>
     public void SelectSlot(SlotSelectEvent slot) => Apply(_model.SlotSelect(slot), PartyMembers());
 
-    /// <summary>Selects every party member.</summary>
+    /// <summary>Selects every party member who is not down.</summary>
     public void SelectAll() => Apply(_model.SelectAll(), PartyMembers());
+
+    public override void _ExitTree()
+    {
+        foreach (PlayerControl partyMember in PortraitSlots)
+        {
+            if (IsInstanceValid(partyMember.Character))
+            {
+                partyMember.Character.DownChanged -= OnDownChanged;
+            }
+        }
+    }
+
+    /// <summary>Tells the model a party member went down (they leave the selection) or got up (selectable again).</summary>
+    private void OnDownChanged(Character character)
+    {
+        PlayerControl partyMember = PortraitSlots.First(slot => slot.Character == character);
+        Apply(character.IsDown ? _model.GoDown(partyMember.PartyMemberId) : _model.GetUp(partyMember.PartyMemberId),
+            PartyMembers());
+    }
 
     /// <summary>
     /// Once a left press in the world has started a possible drag, its motion and release are taken here, before the

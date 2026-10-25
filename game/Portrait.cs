@@ -7,12 +7,15 @@ namespace Crpg;
 
 /// <summary>
 /// A placeholder portrait for one party member: a panel in their tint showing their portrait slot number, with a
-/// bright border while they are in the selection. Consumes every mouse button on it, so none reaches the world.
+/// bright border while they are in the selection, greyed out while they are down. Consumes every mouse button on it, so none reaches the world.
 /// </summary>
 public partial class Portrait : Panel
 {
     private static readonly Color BorderColor = new(0.1f, 0.1f, 0.1f);
     private static readonly Color HighlightColor = new(1f, 0.95f, 0.55f);
+
+    /// <summary>The panel colour while the party member is down.</summary>
+    private static readonly Color DownColor = new(0.3f, 0.3f, 0.3f);
 
     private readonly StyleBoxFlat _style = new();
     private bool _highlighted;
@@ -37,6 +40,19 @@ public partial class Portrait : Panel
         {
             _highlighted = value;
             _style.BorderColor = value ? HighlightColor : BorderColor;
+        }
+    }
+
+    private bool _showsDown;
+
+    /// <summary>True while the party member is down; the panel is greyed out.</summary>
+    public bool ShowsDown
+    {
+        get => _showsDown;
+        set
+        {
+            _showsDown = value;
+            _style.BgColor = value ? DownColor : Tint;
         }
     }
 

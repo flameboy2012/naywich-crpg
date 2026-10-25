@@ -9,8 +9,10 @@ namespace Crpg;
 /// <summary>
 /// Control component that makes its parent Character an enemy, the sibling type of <see cref="PlayerControl"/>. Its
 /// click area moves to the enemy click layer, so a right-click on its body orders the selection to attack it. Each
-/// physics frame it runs the Core enemy target pick and gives the character an attack order on the picked party
-/// member, so the enemy fights with the same move-into-range and attack-cooldown behaviour as party members.
+/// physics frame it runs the Core enemy target pick, keeping whether the enemy is aware of the party, and gives the
+/// character an attack order on the picked party member, so the enemy fights with the same move-into-range and
+/// attack-cooldown behaviour as party members. Downed party members are never picked; with every party member down
+/// the enemy stops.
 /// </summary>
 public partial class AiControl : Node
 {
@@ -59,10 +61,9 @@ public partial class AiControl : Node
         List<PlayerControl> partyMembers = GetTree().GetNodesInGroup(PlayerControl.PartyMembersGroup)
             .OfType<PlayerControl>().ToList();
 
-        // Down party members arrive with #30; until then a party member at 0 HP is still a target.
         TargetCandidate[] candidates = partyMembers
             .Select(control => new TargetCandidate(control.PartyMemberId, control.GlobalPosition.ToWorldPosition(),
-                IsDown: false))
+                control.Character.IsDown))
             .ToArray();
         PartyMemberId? current = partyMembers.FirstOrDefault(control => control.Character == _character.AttackTarget)
             ?.PartyMemberId;

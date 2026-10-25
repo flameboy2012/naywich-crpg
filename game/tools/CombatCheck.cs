@@ -19,6 +19,10 @@ namespace Crpg.Tools;
 /// Last, goblins fight back: the party goes back to its start and the AI comes on. The two living goblins stand idle
 /// until the fighter walks within their awareness radius, then attack the fighter: the scimitar goblin walks into melee,
 /// the shortbow goblin shoots from where it stands, and every attack writes a log line and shrinks the fighter's HP bar.
+/// Then down and getting up: the goblins take the idle fighter to 0 HP. The fighter goes down, drops out of the
+/// selection, greys out with their portrait, and can't be selected by click, shift-click, box select, portrait, number
+/// key or Ctrl+A; the goblins switch to the nearest party member still up. The rest of the party kills both goblins,
+/// and at combat end the fighter gets up at 1 HP and can be selected again. Defeat is on the play-test list.
 /// Run from game/ after dotnet build, with the seed:
 ///   godot --headless --path . --fixed-fps 60 --quit-after 6000 --script res://tools/CombatCheck.cs --seed 1
 /// Prints "CombatCheck: PASSED" and exits 0, or prints ERROR lines and exits 1.
@@ -28,7 +32,8 @@ public partial class CombatCheck : HeadlessCheck
     /// <summary>
     /// The seed the documented command passes. The fights depend on its rolls. Melee: four attacks, three misses then
     /// the fighter's killing hit, long enough for the cooldown cases. Ranged: seven attacks, with misses, Fire Bolt
-    /// hits and a shortbow natural 20 crit for the kill, with Goblin 2 alive until after it walks away.
+    /// hits and a shortbow natural 20 crit for the kill, with Goblin 2 alive until after it walks away. Waking: two
+    /// goblin hits take the fighter down, and the cleric, rogue and wizard then kill both goblins with nobody else down.
     /// </summary>
     private const int ExpectedSeed = 1;
 
@@ -78,6 +83,9 @@ public partial class CombatCheck : HeadlessCheck
     /// the fighter's and the goblin's walking.
     /// </summary>
     private const float WakeSlack = 3f;
+
+    private bool _downPhase;
+    private readonly List<(int Frame, string Line)> _downLines = new();
 
     private List<Vector2> _partyStarts = null!;
     private Character[] _wakeGoblins = [];
@@ -294,6 +302,11 @@ public partial class CombatCheck : HeadlessCheck
             yield return step;
         }
 
+        foreach (int step in DownAndGetUp())
+        {
+            yield return step;
+        }
+
         rules.Log.Changed -= OnLogChanged;
     }
 
@@ -407,6 +420,117 @@ public partial class CombatCheck : HeadlessCheck
         Expect($"the fighter's HP bar shrinks ({Fighter.HpBarFraction:0.00})", Fighter.HpBarFraction < 1f);
     }
 
+    /// <summary>How long the check waits for the fighter to go down, and for the rest of the party to kill a goblin.</summary>
+    private const int DownFrames = 2400;
+
+    /// <summary>
+    /// Down and getting up. The fighter stands idle among the two waking goblins until they take them to 0 HP. The
+    /// fighter goes down: they drop out of the selection, their body and portrait grey out, the goblins switch to the
+    /// nearest party member still up and never attack the fighter again, and a click, shift-click, box select,
+    /// portrait click, number key or Ctrl+A can't select them. Then Ctrl+A selects the rest of the party, who kill both
+    /// goblins. At combat end the fighter gets up at 1 HP, with their colour and portrait back, and can be selected.
+    /// </summary>
+    private IEnumerable<int> DownAndGetUp()
+    {
+        _downPhase = true;
+        for (int i = 0; i < DownFrames && Fighter.Hp > 0; i++)
+        {
+            yield return 1;
+        }
+
+        int downFrame = _frame;
+        Expect($"the goblins take the fighter to 0 HP ({Fighter.Hp}/12; needs the seed)", Fighter.Hp == 0);
+        Expect("the fighter goes down", Fighter.IsDown);
+        Expect($"the fighter's log line shows them down ({(_downLines.Count > 0 ? _downLines[^1].Line : "")})",
+            _downLines.Count > 0 && _downLines[^1].Line.EndsWith("(Fighter: 0/12, down)"));
+        yield return 2;
+        Expect("the fighter drops out of the selection", !Fighter.SelectionRingVisible);
+        Expect("the fighter's portrait greys out", Portraits[0].ShowsDown && !Portraits[1].ShowsDown);
+
+        // Past the hit flash that took the fighter down.
+        yield return 30;
+        Expect($"the downed fighter is grey (got {Fighter.BodyColour})", IsGrey(Fighter.BodyColour));
+        Character[] up = { Cleric, Rogue, Wizard };
+        foreach (Character goblin in _wakeGoblins.Where(goblin => !goblin.IsDead))
+        {
+            Character nearest = up.Where(partyMember => !partyMember.IsDown)
+                .MinBy(partyMember => partyMember.GlobalPosition.DistanceTo(goblin.GlobalPosition))!;
+            Expect($"{goblin.DisplayName} switches to the nearest party member still up, {nearest.DisplayName} "
+                   + $"(got {goblin.AttackTarget?.DisplayName ?? "nobody"})", goblin.AttackTarget == nearest);
+        }
+
+        // Every way of selecting, aimed at the fighter. Key 2 first selects the cleric, so a click that changed
+        // nothing can be told from a click that cleared the selection.
+        Root.GetNode<CameraRig>("Main/CameraRig").CentreOn(Fighter.GlobalPosition);
+        yield return 2;
+        Expect("the downed fighter's click area lies down with the body",
+            Fighter.BodyCentre.DistanceTo(Fighter.GlobalPosition + PartyMemberClickOffset) > 16f);
+        PressKey(Key.Key2);
+        yield return 2;
+        Click(MouseButton.Left, Fighter.BodyCentre);
+        yield return 2;
+        Expect("a click on the downed fighter changes nothing", !Fighter.SelectionRingVisible && Cleric.SelectionRingVisible);
+        Click(MouseButton.Left, Fighter.BodyCentre, shift: true);
+        yield return 2;
+        Expect("a shift-click on the downed fighter changes nothing",
+            !Fighter.SelectionRingVisible && Cleric.SelectionRingVisible);
+        Vector2 corner = new(48, 48);
+        Drag(Fighter.GlobalPosition - corner, Fighter.GlobalPosition + corner, shift: true);
+        yield return 2;
+        Expect("a box select around the downed fighter leaves them out",
+            !Fighter.SelectionRingVisible && Cleric.SelectionRingVisible);
+        ClickPortrait(1, MouseButton.Left);
+        yield return 2;
+        Expect("a click on the downed fighter's portrait changes nothing",
+            !Fighter.SelectionRingVisible && Cleric.SelectionRingVisible && !Portraits[0].Highlighted);
+        PressKey(Key.Key1);
+        yield return 2;
+        Expect("key 1 doesn't select the downed fighter", !Fighter.SelectionRingVisible && Cleric.SelectionRingVisible);
+        PressKey(Key.A, ctrl: true);
+        yield return 2;
+        Expect("Ctrl+A selects the party members still up, not the downed fighter",
+            !Fighter.SelectionRingVisible && up.All(partyMember => partyMember.SelectionRingVisible == !partyMember.IsDown));
+
+        // The rest of the party kills both goblins.
+        foreach (Character goblin in _wakeGoblins)
+        {
+            for (int i = 0; i < DownFrames && !goblin.IsDead; i++)
+            {
+                if (i % 120 == 0)
+                {
+                    Root.GetNode<CameraRig>("Main/CameraRig").CentreOn(goblin.GlobalPosition);
+                    yield return 2;
+                    if (!goblin.IsDead && up.All(partyMember => partyMember.AttackTarget != goblin))
+                    {
+                        Click(MouseButton.Right, goblin.GlobalPosition + PartyMemberClickOffset);
+                    }
+                }
+
+                yield return 1;
+            }
+
+            Expect($"the rest of the party kills {goblin.DisplayName} (needs the seed)", goblin.IsDead);
+        }
+
+        Expect("no goblin attacks the downed fighter", _downLines.All(attack =>
+            attack.Frame <= downFrame || !attack.Line.Contains(" → Fighter: ")));
+        Expect("the party isn't defeated (needs the seed)", up.Any(partyMember => !partyMember.IsDown));
+
+        yield return 10;
+        _downPhase = false;
+        Expect($"at combat end the fighter gets up at 1 HP (got {Fighter.Hp}, down {Fighter.IsDown})",
+            !Fighter.IsDown && Fighter.Hp == 1 && Mathf.IsEqualApprox(Fighter.HpBarFraction, 1f / 12f));
+        Expect($"every downed party member gets up at combat end ({string.Join(", ", PartyMembers.Where(p => p.IsDown).Select(p => p.DisplayName))})",
+            PartyMembers.All(partyMember => !partyMember.IsDown && partyMember.Hp >= 1));
+        Expect($"the fighter's colour comes back (got {Fighter.BodyColour})", Fighter.BodyColour == Fighter.Tint);
+        Expect("the fighter's portrait comes back", !Portraits[0].ShowsDown);
+        PressKey(Key.Key1);
+        yield return 2;
+        Expect("key 1 selects the fighter again", Fighter.SelectionRingVisible && !Cleric.SelectionRingVisible);
+    }
+
+    private static bool IsGrey(Color colour) =>
+        colour.R < 0.6f && Mathf.IsEqualApprox(colour.R, colour.G) && Mathf.IsEqualApprox(colour.G, colour.B);
     private static float AwarenessRadiusPixels(Character goblin) =>
         ((Data.MonsterData)goblin.CharacterStats!).AwarenessRadiusTiles * Character.TileLength;
 
@@ -584,6 +708,12 @@ public partial class CombatCheck : HeadlessCheck
     {
         string line = lines[^1];
         GD.Print($"frame {_frame}: {line}");
+        if (_downPhase)
+        {
+            _downLines.Add((_frame, line));
+            return;
+        }
+
         if (_wakePhase)
         {
             OnGoblinAttack(line);
