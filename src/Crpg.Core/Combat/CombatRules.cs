@@ -31,32 +31,32 @@ public sealed class CombatRules(IDiceRoller dice)
         <= attack.RangeTiles * TileScale.GridStepLength + attackerFeetRadius + targetFeetRadius;
 
     /// <summary>
-    /// An enemy's target pick. It keeps its current target while that party member is up, however far away they are
-    /// (no leash). Otherwise it picks the nearest party member who is not down and whose feet are within the awareness
-    /// radius (in tiles of one grid-step length) of the enemy's feet, or nobody.
+    /// An enemy's target pick. An enemy becomes aware of the party when a party member who is not down comes within
+    /// its awareness radius (in tiles of one grid-step length, feet to feet), and stays aware until it is dead: once
+    /// aware, there is no leash. An aware enemy keeps its current target while that party member is up, however far
+    /// away they are; otherwise it picks the nearest party member who is not down, at any distance. An unaware enemy,
+    /// or an aware one with every party member down, picks nobody.
     /// </summary>
-    public static PartyMemberId? PickEnemyTarget(WorldPosition enemyFeet, int awarenessRadiusTiles,
+    public static EnemyTargetPick PickEnemyTarget(WorldPosition enemyFeet, int awarenessRadiusTiles, bool isAware,
         PartyMemberId? current, IReadOnlyList<TargetCandidate> partyMembers)
     {
-        if (current is { } kept && partyMembers.Any(candidate => candidate.Id == kept && !candidate.IsDown))
-        {
-            return kept;
-        }
-
+        TargetCandidate[] up = partyMembers.Where(candidate => !candidate.IsDown).ToArray();
         float radius = awarenessRadiusTiles * TileScale.GridStepLength;
-        PartyMemberId? nearest = null;
-        float nearestDistance = float.MaxValue;
-        foreach (TargetCandidate candidate in partyMembers)
+        bool aware = isAware || up.Any(candidate => enemyFeet.DistanceTo(candidate.Feet) <= radius);
+        if (!aware)
         {
-            float distance = enemyFeet.DistanceTo(candidate.Feet);
-            if (!candidate.IsDown && distance <= radius && distance < nearestDistance)
-            {
-                nearest = candidate.Id;
-                nearestDistance = distance;
-            }
+            return new EnemyTargetPick(IsAware: false, null);
         }
 
-        return nearest;
+        if (current is { } kept && up.Any(candidate => candidate.Id == kept))
+        {
+            return new EnemyTargetPick(IsAware: true, kept);
+        }
+
+        PartyMemberId? nearest = up.Length == 0
+            ? null
+            : up.MinBy(candidate => enemyFeet.DistanceTo(candidate.Feet)).Id;
+        return new EnemyTargetPick(IsAware: true, nearest);
     }
 
     /// <summary>Rolls the dice and sums them.</summary>

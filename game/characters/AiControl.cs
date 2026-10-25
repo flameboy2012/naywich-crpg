@@ -27,6 +27,12 @@ public partial class AiControl : Node
     /// <summary>The character this component controls.</summary>
     public Character Character => _character;
 
+    /// <summary>
+    /// True once a party member who is not down has come within this enemy's awareness radius. It stays true until
+    /// the enemy is dead (no leash); combat end is when no living enemy is aware.
+    /// </summary>
+    public bool IsAware { get; private set; }
+
     /// <summary>How far, in tiles, this enemy notices a party member: from its MonsterData.</summary>
     public int AwarenessRadiusTiles =>
         _character.CharacterStats is Data.MonsterData monster ? monster.AwarenessRadiusTiles : DefaultAwarenessRadiusTiles;
@@ -60,11 +66,14 @@ public partial class AiControl : Node
             .ToArray();
         PartyMemberId? current = partyMembers.FirstOrDefault(control => control.Character == _character.AttackTarget)
             ?.PartyMemberId;
-        PartyMemberId? pick = CombatRules.PickEnemyTarget(_character.GlobalPosition.ToWorldPosition(),
-            AwarenessRadiusTiles, current, candidates);
+        EnemyTargetPick pick = CombatRules.PickEnemyTarget(_character.GlobalPosition.ToWorldPosition(),
+            AwarenessRadiusTiles, IsAware, current, candidates);
+        IsAware = pick.IsAware;
 
-        if (pick != current && partyMembers.FirstOrDefault(control => control.PartyMemberId == pick) is { } picked)
+        if (pick.Target != current
+            && partyMembers.FirstOrDefault(control => control.PartyMemberId == pick.Target) is { } picked)
         {
-            _character.Attack(picked.Character);        }
+            _character.Attack(picked.Character);
+        }
     }
 }
