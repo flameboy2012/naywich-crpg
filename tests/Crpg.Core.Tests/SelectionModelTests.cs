@@ -7,8 +7,13 @@ public class SelectionModelTests
     private static readonly PartyMemberId Aldric = new("aldric");
     private static readonly PartyMemberId Brenna = new("brenna");
 
+    private static readonly WorldPosition Somewhere = new(10f, 20f);
+
     private static ClickEvent LeftClickOn(PartyMemberId partyMember) =>
-        new(ClickButton.Left, new ClickTarget.PartyMember(partyMember));
+        new(ClickButton.Left, new ClickTarget.PartyMember(partyMember, Somewhere));
+
+    private static ClickEvent RightClickOn(PartyMemberId partyMember, float x, float y) =>
+        new(ClickButton.Right, new ClickTarget.PartyMember(partyMember, new WorldPosition(x, y)));
 
     private static ClickEvent RightClickOnGround(float x, float y) =>
         new(ClickButton.Right, new ClickTarget.Ground(new WorldPosition(x, y)));
@@ -89,7 +94,7 @@ public class SelectionModelTests
         model.Click(LeftClickOn(Aldric));
 
         ClickResult onGround = model.Click(RightClickOnGround(300f, 120f));
-        ClickResult onPartyMember = model.Click(new ClickEvent(ClickButton.Right, new ClickTarget.PartyMember(Brenna)));
+        ClickResult onPartyMember = model.Click(RightClickOn(Brenna, 64f, 32f));
 
         Assert.Equal(new[] { Aldric }, onGround.Selection);
         Assert.Equal(new[] { Aldric }, onPartyMember.Selection);
@@ -106,5 +111,28 @@ public class SelectionModelTests
         ClickResult result = model.Click(RightClickOnGround(-40f, 500f));
 
         Assert.Equal(new Order[] { new MoveOrder(Aldric, new WorldPosition(-40f, 500f)) }, result.Orders);
+    }
+
+    [Fact]
+    public void Right_click_on_a_party_member_with_a_selection_issues_a_move_order_to_their_position()
+    {
+        var model = new SelectionModel();
+        model.Click(LeftClickOn(Aldric));
+
+        ClickResult result = model.Click(RightClickOn(Brenna, 64f, 32f));
+
+        Assert.Equal(new Order[] { new MoveOrder(Aldric, new WorldPosition(64f, 32f)) }, result.Orders);
+        Assert.Equal(new[] { Aldric }, result.Selection);
+    }
+
+    [Fact]
+    public void Right_click_on_a_party_member_with_an_empty_selection_issues_no_orders()
+    {
+        var model = new SelectionModel();
+
+        ClickResult result = model.Click(RightClickOn(Brenna, 64f, 32f));
+
+        Assert.Empty(result.Selection);
+        Assert.Empty(result.Orders);
     }
 }

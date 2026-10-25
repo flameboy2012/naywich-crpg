@@ -22,15 +22,24 @@ public sealed class SelectionModel
         _ => CurrentResult(),
     };
 
-    /// <summary>Right-click on ground sends every selected party member there; the selection is unchanged.</summary>
+    /// <summary>
+    /// Right-click on ground, or on a party member's spot, sends every selected party member there; the selection
+    /// is unchanged.
+    /// </summary>
     private ClickResult RightClick(ClickTarget target)
     {
-        if (target is not ClickTarget.Ground ground)
+        WorldPosition? destination = target switch
+        {
+            ClickTarget.Ground ground => ground.Position,
+            ClickTarget.PartyMember partyMember => partyMember.Position,
+            _ => null,
+        };
+        if (destination is not { } position)
         {
             return CurrentResult();
         }
 
-        Order[] orders = _selection.Select(id => (Order)new MoveOrder(id, ground.Position)).ToArray();
+        Order[] orders = _selection.Select(id => (Order)new MoveOrder(id, position)).ToArray();
         return new ClickResult(_selection, orders);
     }
 

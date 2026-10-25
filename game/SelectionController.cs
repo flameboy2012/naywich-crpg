@@ -38,7 +38,8 @@ public partial class SelectionController : Node
         Vector2 world = GetViewport().GetCanvasTransform().AffineInverse() * mouse.Position;
         List<PlayerControl> partyMembers = PartyMembers();
         ClickTarget target = PartyMemberAt(world, partyMembers) is { } hit
-            ? new ClickTarget.PartyMember(hit.PartyMemberId)
+            ? new ClickTarget.PartyMember(hit.PartyMemberId,
+                new WorldPosition(hit.Character.GlobalPosition.X, hit.Character.GlobalPosition.Y))
             : new ClickTarget.Ground(new WorldPosition(world.X, world.Y));
 
         ClickResult result = _model.Click(new ClickEvent(button.Value, target));

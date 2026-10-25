@@ -13,7 +13,8 @@ public abstract record ClickTarget
     {
     }
 
-    public sealed record PartyMember(PartyMemberId Id) : ClickTarget;
+    /// <summary>A party member, with the world position they stand at.</summary>
+    public sealed record PartyMember(PartyMemberId Id, WorldPosition Position) : ClickTarget;
 
     public sealed record Ground(WorldPosition Position) : ClickTarget;
 }
