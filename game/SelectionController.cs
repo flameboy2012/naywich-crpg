@@ -57,7 +57,7 @@ public partial class SelectionController : Node
         // Every party member has entered the tree (and joined the group) before any node's _Ready.
         foreach (PlayerControl partyMember in PartyMembers().Values)
         {
-            PathLines.AddChild(new PathLine { Source = partyMember, Name = partyMember.Character.Name });
+            PathLines.AddChild(new PathLine { Source = partyMember, Name = partyMember.PartyMemberId.Value });
         }
     }
 
@@ -97,7 +97,7 @@ public partial class SelectionController : Node
         OnDrag(pressedAt, left.Position);
         if (_dragging)
         {
-            BoxSelect(new Rect2(pressedAt, left.Position - pressedAt).Abs(), left.ShiftPressed);
+            BoxSelect(Box(pressedAt, left.Position), left.ShiftPressed);
         }
         else
         {
@@ -119,11 +119,14 @@ public partial class SelectionController : Node
             return;
         }
 
-        Rect2 rect = new Rect2(pressedAt, mouse - pressedAt).Abs();
+        Rect2 rect = Box(pressedAt, mouse);
         _box.Position = rect.Position;
         _box.Size = rect.Size;
         _box.Visible = true;
     }
+
+    /// <summary>The box select rectangle (screen px) between where the left button went down and the mouse.</summary>
+    private static Rect2 Box(Vector2 pressedAt, Vector2 mouse) => new Rect2(pressedAt, mouse - pressedAt).Abs();
 
     /// <summary>Sends a click at a screen point to the model, resolved to a party member or ground.</summary>
     private void Click(ClickButton button, Vector2 screen, bool shift)

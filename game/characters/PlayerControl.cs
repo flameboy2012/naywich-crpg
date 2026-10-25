@@ -29,9 +29,6 @@ public partial class PlayerControl : Node
     /// <summary>True if the area is this party member's click area.</summary>
     public bool OwnsClickArea(Area2D area) => area.GetParent() == _character;
 
-    /// <summary>The character this component controls.</summary>
-    public Character Character => _character;
-
     /// <summary>True while the party member is in the selection, as last shown by <see cref="ShowSelected"/>.</summary>
     public bool IsSelected { get; private set; }
 

@@ -14,11 +14,8 @@ public partial class PathLine : Line2D
 
     private const float LineWidth = 2f;
 
-    /// <summary>The party member whose route this line draws.</summary>
+    /// <summary>The party member whose route this line draws. The line reads everything it shows through it.</summary>
     public PlayerControl Source { get; init; } = null!;
-
-    /// <summary>The character the line belongs to.</summary>
-    public Character PartyMember => Source.Character;
 
     public override void _EnterTree() => AddToGroup(Group);
 
