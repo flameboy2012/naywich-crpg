@@ -87,7 +87,7 @@ Controls are identical in and out of combat: left-click selects party members, r
 
 **Orders**
 
-- Right-click ground: move the selection there. Multiple party members spread into simple offset positions around the target so they don't stack.
+- Right-click ground: move the selection there. Multiple party members spread into spread slots around the target so they don't stack. Right-clicking a party member counts as clicking the ground at their feet.
 - Right-click enemy: the selection attacks it (move into range, then attack).
 - Right-click NPC or object: walk to it, then interact (talk, open, use, pick up).
 - Right-click with nothing selected does nothing.
@@ -322,16 +322,23 @@ Build in small, playable steps. Each milestone ends with something you can run a
 - [x] Right-click to move with pathfinding
 - [x] Static camera
 
-**M1.5 — Party control**
+**M1.5 — Group movement**
 
-- [ ] Second party member; shift-click and box select
-- [ ] Agent avoidance and group spread offsets
-- [ ] Move marker: on right-click, a small ring at the point where the party member will actually stop (the closest reachable point, so clicks inside obstacles show the real end point). It pulses and fades over about 1 s; a new click replaces it. Proposed, to be refined.
-- [ ] Path line: a thin line along the navigation path from each selected party member to their destination. It shrinks as they walk and disappears on arrival or deselection. Proposed, to be refined.
+- [ ] Four party members, each with a distinct placeholder tint. Bodies don't block each other; agent avoidance steers moving members around the others, with no shoving.
+- [ ] Shift-click adds or removes a party member; shift-click on ground does nothing
+- [ ] Box select: the rectangle is drawn while dragging and tests each member's feet point in screen space. A plain drag replaces the selection, shift+drag adds to it, and an empty box clears it. A press that moves less than about 6 px is a click.
+- [ ] Spread slots: a fixed, world-aligned pattern with slots 1 tile apart, the first on the clicked point. Members are assigned to slots to minimise total distance (pure logic in `Crpg.Core`). Each slot snaps to its closest reachable point; slots stacking near walls is a known limit.
+- [ ] Arrival: a move also ends when the member is within about half a tile of its slot and has stopped making progress for about 0.5 s, so an occupied slot can't leave it jittering.
+- [ ] Move marker: on right-click, a ring in the member's tint at each selected member's real end point. Markers pulse and fade over about 1 s; a new click replaces them all.
+- [ ] Path line: a thin line in the member's tint along the navigation path from each selected party member to their destination. It shrinks as they walk and disappears on arrival or deselection.
+- [ ] Review the C# vs GDScript decision (ADR 0002): log Godot C# friction during the build, decide at merge
+
+**M1.6 — Party UI and camera**
+
+- [ ] A test zone of about 2–3 screens, so the camera has somewhere to go
 - [ ] Portrait column: click, shift-click, double-click to centre
 - [ ] Keys 1–4 and Ctrl+A
 - [ ] Camera pan (edges, WASD/arrows, middle-mouse) and clamp
-- [ ] Review the C# vs GDScript decision (ADR 0002)
 
 **M2 — Combat prototype**
 

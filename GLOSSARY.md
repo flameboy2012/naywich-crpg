@@ -30,6 +30,22 @@ _Avoid_: Group, squad
 A player command given to the selection, such as move, attack or interact.
 _Avoid_: Command, action
 
+**Box select**:
+Selecting the party members inside a rectangle dragged across the screen.
+_Avoid_: Marquee, drag select
+
+**Spread slot**:
+The end point given to one party member when a move order sends several party members to the same place, so they don't stack.
+_Avoid_: Formation position, offset
+
+**Move marker**:
+A brief ring showing where a party member will actually stop after a move order.
+_Avoid_: Cursor, waypoint
+
+**Path line**:
+The drawn route from a selected party member to their destination.
+_Avoid_: Trail, route preview
+
 ## Space
 
 **Tile**:

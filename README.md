@@ -25,7 +25,8 @@ Domain terms are defined in [GLOSSARY.md](GLOSSARY.md). Architecture decisions a
 ## Milestones
 
 - **M1:** Movement prototype (one party member, static camera)
-- **M1.5:** Party control (selection, portraits, camera)
+- **M1.5:** Group movement (four party members, box select, spread slots, move feedback)
+- **M1.6:** Party UI and camera (portraits, hotkeys, camera pan)
 - **M2:** Combat prototype
 - **M3:** Zone graph
 - **M4:** Save/load and game state
