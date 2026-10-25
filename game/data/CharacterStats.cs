@@ -1,3 +1,4 @@
+using System;
 using Crpg.Core.Combat;
 using Godot;
 
@@ -55,7 +56,7 @@ public partial class CharacterStats : Resource
     {
         if (Attack is null)
         {
-            throw new System.InvalidOperationException($"CharacterStats '{Name}' ({ResourcePath}) has no attack.");
+            throw new InvalidOperationException($"CharacterStats '{Name}' ({ResourcePath}) has no attack.");
         }
 
         return new Stats(Name, new AbilityScores(Strength, Dexterity, Constitution, Intelligence, Wisdom, Charisma),

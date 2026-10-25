@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Crpg.Core.Combat;
 using Crpg.Core.Movement;
 using Godot;
@@ -147,7 +149,7 @@ public partial class Character : CharacterBody2D
     public bool IsDown { get; private set; }
 
     /// <summary>Raised when this party member goes down or gets up.</summary>
-    public event System.Action<Character>? DownChanged;
+    public event Action<Character>? DownChanged;
 
     /// <summary>The character this one has an attack order on, or null.</summary>
     public Character? AttackTarget { get; private set; }
@@ -162,7 +164,7 @@ public partial class Character : CharacterBody2D
     public Color BodyColor => _sprite.Modulate;
 
     /// <summary>The tints of the target rings under this character, one per party member attacking it.</summary>
-    public System.Collections.Generic.IReadOnlyList<Color> TargetRingTints => _targetRings.Tints;
+    public IReadOnlyList<Color> TargetRingTints => _targetRings.Tints;
 
     /// <summary>True while the character's click area can be clicked: never for a dead enemy.</summary>
     public bool Clickable => _clickArea.CollisionLayer != 0;
@@ -192,7 +194,7 @@ public partial class Character : CharacterBody2D
 
         _rules = GetNodeOrNull<Rules>(Rules.Path);
         _hpBar = GetNode<HpBar>("HpBar");
-        _hpBar.Fraction = Stats is null ? 0f : (float)Hp / MaxHp;
+        ShowHp();
         _sprite = GetNode<Sprite2D>("Sprite");
         _sprite.Modulate = Tint;
         _selectionRing = GetNode<Sprite2D>("SelectionRing");
@@ -386,8 +388,8 @@ public partial class Character : CharacterBody2D
             return;
         }
 
-        Hp = System.Math.Max(0, Hp - result.Damage);
-        _hpBar.Fraction = (float)Hp / MaxHp;
+        Hp = Math.Max(0, Hp - result.Damage);
+        ShowHp();
         if (Hp == 0 && IsEnemy)
         {
             Die();
@@ -399,6 +401,9 @@ public partial class Character : CharacterBody2D
 
         Flash();
     }
+
+    /// <summary>Shows the current HP on the HP bar over the character's head: empty without stats.</summary>
+    private void ShowHp() => _hpBar.Fraction = Stats is null ? 0f : (float)Hp / MaxHp;
 
     /// <summary>A brief over-bright pulse on the body that fades back to its resting colour.</summary>
     private void Flash()
@@ -441,7 +446,7 @@ public partial class Character : CharacterBody2D
 
         IsDown = false;
         Hp = CombatRules.HpAtCombatEnd(Hp);
-        _hpBar.Fraction = (float)Hp / MaxHp;
+        ShowHp();
         _flash?.Kill();
         _sprite.Modulate = Tint;
         _sprite.Rotation = 0f;
