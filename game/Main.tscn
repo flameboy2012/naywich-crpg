@@ -1,87 +1,87 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dx3icdhmx16r5"]
 
-[ext_resource type="Script" path="res://Main.cs" id="1"]
+[ext_resource type="Script" uid="uid://b0ex6g14787yg" path="res://Main.cs" id="1"]
 [ext_resource type="PackedScene" path="res://characters/Character.tscn" id="2_char"]
-[ext_resource type="Script" path="res://SelectionController.cs" id="3_sel"]
-[ext_resource type="Script" path="res://CameraRig.cs" id="4_cam"]
-[ext_resource type="Script" path="res://PortraitColumn.cs" id="5_por"]
-[ext_resource type="Script" path="res://PauseBanner.cs" id="6_pau"]
-[ext_resource type="Script" path="res://CombatLogPanel.cs" id="7_log"]
+[ext_resource type="Script" uid="uid://b8mhv0rpbg5w3" path="res://SelectionController.cs" id="3_sel"]
+[ext_resource type="Script" uid="uid://bi8hfvgss2vr4" path="res://CameraRig.cs" id="4_cam"]
+[ext_resource type="Script" uid="uid://cq4igy5kg1h62" path="res://PortraitColumn.cs" id="5_por"]
+[ext_resource type="Script" uid="uid://k4mt4pk3h5ut" path="res://PauseBanner.cs" id="6_pau"]
+[ext_resource type="Script" uid="uid://ca0f2ng6yc22m" path="res://CombatLogPanel.cs" id="7_log"]
 [ext_resource type="Resource" path="res://data/party/fighter.tres" id="8_fig"]
 [ext_resource type="Resource" path="res://data/party/cleric.tres" id="9_cle"]
 [ext_resource type="Resource" path="res://data/party/rogue.tres" id="10_rog"]
 [ext_resource type="Resource" path="res://data/party/wizard.tres" id="11_wiz"]
-[ext_resource type="Script" path="res://characters/PlayerControl.cs" id="12_ctrl"]
-[ext_resource type="Script" path="res://CombatMonitor.cs" id="13_mon"]
+[ext_resource type="Script" uid="uid://pfb6d2h70i5i" path="res://characters/PlayerControl.cs" id="12_ctrl"]
+[ext_resource type="Script" uid="uid://b1fsbqdqo85xp" path="res://CombatMonitor.cs" id="13_mon"]
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" unique_id=1373970876]
 script = ExtResource("1")
 
-[node name="ZoneContainer" type="Node2D" parent="."]
+[node name="ZoneContainer" type="Node2D" parent="." unique_id=954404045]
 
-[node name="PathLines" type="Node2D" parent="."]
+[node name="PathLines" type="Node2D" parent="." unique_id=592018543]
 process_mode = 3
 
-[node name="MoveMarkers" type="Node2D" parent="."]
+[node name="MoveMarkers" type="Node2D" parent="." unique_id=1318587797]
 process_mode = 3
 
-[node name="Party" type="Node2D" parent="."]
+[node name="Party" type="Node2D" parent="." unique_id=295256572]
 
-[node name="PartyMember1" parent="Party" instance=ExtResource("2_char")]
+[node name="PartyMember1" parent="Party" unique_id=2047791799 instance=ExtResource("2_char")]
 position = Vector2(-96, 336)
 Tint = Color(0.3, 0.5, 0.95, 1)
 CharacterStats = ExtResource("8_fig")
 
-[node name="PlayerControl" type="Node" parent="Party/PartyMember1"]
+[node name="PlayerControl" type="Node" parent="Party/PartyMember1" unique_id=148008138]
 script = ExtResource("12_ctrl")
 
-[node name="PartyMember2" parent="Party" instance=ExtResource("2_char")]
+[node name="PartyMember2" parent="Party" unique_id=202738405 instance=ExtResource("2_char")]
 position = Vector2(-32, 368)
 Tint = Color(0.9, 0.3, 0.25, 1)
 CharacterStats = ExtResource("9_cle")
 
-[node name="PlayerControl" type="Node" parent="Party/PartyMember2"]
+[node name="PlayerControl" type="Node" parent="Party/PartyMember2" unique_id=1798022046]
 script = ExtResource("12_ctrl")
 
-[node name="PartyMember3" parent="Party" instance=ExtResource("2_char")]
+[node name="PartyMember3" parent="Party" unique_id=1571103004 instance=ExtResource("2_char")]
 position = Vector2(-160, 368)
 Tint = Color(0.7, 0.4, 0.9, 1)
 CharacterStats = ExtResource("10_rog")
 
-[node name="PlayerControl" type="Node" parent="Party/PartyMember3"]
+[node name="PlayerControl" type="Node" parent="Party/PartyMember3" unique_id=226076161]
 script = ExtResource("12_ctrl")
 
-[node name="PartyMember4" parent="Party" instance=ExtResource("2_char")]
+[node name="PartyMember4" parent="Party" unique_id=1134522762 instance=ExtResource("2_char")]
 position = Vector2(-96, 400)
 Tint = Color(0.2, 0.8, 0.8, 1)
 CharacterStats = ExtResource("11_wiz")
 
-[node name="PlayerControl" type="Node" parent="Party/PartyMember4"]
+[node name="PlayerControl" type="Node" parent="Party/PartyMember4" unique_id=380979951]
 script = ExtResource("12_ctrl")
 
-[node name="CameraRig" type="Node2D" parent="." node_paths=PackedStringArray("SelectionController")]
+[node name="CameraRig" type="Node2D" parent="." unique_id=2005910992 node_paths=PackedStringArray("SelectionController")]
 process_mode = 3
 script = ExtResource("4_cam")
 SelectionController = NodePath("../SelectionController")
 
-[node name="Camera2D" type="Camera2D" parent="CameraRig"]
+[node name="Camera2D" type="Camera2D" parent="CameraRig" unique_id=1113814444]
 
-[node name="SelectionController" type="Node" parent="." node_paths=PackedStringArray("MoveMarkers", "PathLines", "Party")]
+[node name="SelectionController" type="Node" parent="." unique_id=408631670 node_paths=PackedStringArray("MoveMarkers", "PathLines", "Party")]
 process_mode = 3
 script = ExtResource("3_sel")
 MoveMarkers = NodePath("../MoveMarkers")
 PathLines = NodePath("../PathLines")
 Party = NodePath("../Party")
 
-[node name="UI" type="CanvasLayer" parent="."]
+[node name="UI" type="CanvasLayer" parent="." unique_id=1927849574]
 process_mode = 3
 
-[node name="PortraitColumn" type="VBoxContainer" parent="UI" node_paths=PackedStringArray("SelectionController", "CameraRig")]
+[node name="PortraitColumn" type="VBoxContainer" parent="UI" unique_id=1837423226 node_paths=PackedStringArray("SelectionController", "CameraRig")]
 script = ExtResource("5_por")
 SelectionController = NodePath("../../SelectionController")
 CameraRig = NodePath("../../CameraRig")
 
-[node name="PauseBanner" type="Label" parent="UI"]
+[node name="PauseBanner" type="Label" parent="UI" unique_id=289239451]
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
@@ -90,7 +90,6 @@ offset_top = 16.0
 offset_right = 120.0
 offset_bottom = 72.0
 grow_horizontal = 2
-mouse_filter = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 8
 theme_override_font_sizes/font_size = 40
@@ -98,11 +97,11 @@ horizontal_alignment = 1
 vertical_alignment = 1
 script = ExtResource("6_pau")
 
-[node name="CombatLogPanel" type="PanelContainer" parent="UI"]
+[node name="CombatLogPanel" type="PanelContainer" parent="UI" unique_id=502559999]
 mouse_filter = 2
 script = ExtResource("7_log")
 
-[node name="DefeatBanner" type="Label" parent="UI"]
+[node name="DefeatBanner" type="Label" parent="UI" unique_id=1722989520]
 visible = false
 anchors_preset = 8
 anchor_left = 0.5
@@ -115,7 +114,6 @@ offset_right = 240.0
 offset_bottom = 40.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(0.95, 0.3, 0.25, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 10
@@ -123,6 +121,6 @@ theme_override_font_sizes/font_size = 56
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="CombatMonitor" type="Node" parent="." node_paths=PackedStringArray("DefeatBanner")]
+[node name="CombatMonitor" type="Node" parent="." unique_id=1323238366 node_paths=PackedStringArray("DefeatBanner")]
 script = ExtResource("13_mon")
 DefeatBanner = NodePath("../UI/DefeatBanner")
