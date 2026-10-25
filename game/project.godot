@@ -17,6 +17,7 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 [autoload]
 
 PauseManager="*res://PauseManager.cs"
+Rules="*res://Rules.cs"
 
 [display]
 
