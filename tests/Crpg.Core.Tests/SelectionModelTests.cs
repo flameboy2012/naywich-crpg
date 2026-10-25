@@ -380,4 +380,107 @@ public class SelectionModelTests
         Assert.Empty(plain.Orders);
         Assert.Empty(shift.Orders);
     }
+
+    /// <summary>A model given a party of three in portrait slot order: Aldric in slot 1, Brenna in 2, Cerys in 3.</summary>
+    private static SelectionModel PartyOfThree(params PartyMemberId[] selected)
+    {
+        var model = new SelectionModel(new[] { Aldric, Brenna, Cerys });
+        foreach (PartyMemberId partyMember in selected)
+        {
+            model.Click(ShiftClickOn(partyMember));
+        }
+
+        return model;
+    }
+
+    [Fact]
+    public void Slot_select_replaces_the_selection_with_the_party_member_in_that_slot()
+    {
+        SelectionModel model = PartyOfThree(Aldric, Cerys);
+
+        ClickResult result = model.SlotSelect(new SlotSelectEvent(2));
+
+        Assert.Equal(new[] { Brenna }, result.Selection);
+        Assert.Equal(new[] { Brenna }, model.Selection);
+    }
+
+    [Fact]
+    public void Slot_toggle_adds_an_unselected_party_member_to_the_selection()
+    {
+        SelectionModel model = PartyOfThree(Aldric);
+
+        ClickResult result = model.SlotSelect(new SlotSelectEvent(3, Shift: true));
+
+        Assert.Equal(new[] { Aldric, Cerys }, result.Selection.OrderBy(id => id.Value));
+    }
+
+    [Fact]
+    public void Slot_toggle_removes_a_selected_party_member_from_the_selection()
+    {
+        SelectionModel model = PartyOfThree(Aldric, Brenna);
+
+        ClickResult result = model.SlotSelect(new SlotSelectEvent(1, Shift: true));
+
+        Assert.Equal(new[] { Brenna }, result.Selection);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Slot_select_or_toggle_on_a_slot_with_no_party_member_changes_nothing(bool shift)
+    {
+        SelectionModel model = PartyOfThree(Aldric, Cerys);
+
+        ClickResult result = model.SlotSelect(new SlotSelectEvent(4, shift));
+
+        Assert.Equal(new[] { Aldric, Cerys }, result.Selection.OrderBy(id => id.Value));
+        Assert.Empty(result.Orders);
+    }
+
+    [Fact]
+    public void Select_all_selects_every_party_member_from_an_empty_selection()
+    {
+        SelectionModel model = PartyOfThree();
+
+        ClickResult result = model.SelectAll();
+
+        Assert.Equal(new[] { Aldric, Brenna, Cerys }, result.Selection.OrderBy(id => id.Value));
+    }
+
+    [Fact]
+    public void Select_all_selects_every_party_member_from_a_partial_selection()
+    {
+        SelectionModel model = PartyOfThree(Brenna);
+
+        ClickResult result = model.SelectAll();
+
+        Assert.Equal(new[] { Aldric, Brenna, Cerys }, result.Selection.OrderBy(id => id.Value));
+    }
+
+    [Fact]
+    public void Slot_and_select_all_events_issue_no_orders_even_after_a_move_order()
+    {
+        SelectionModel model = PartyOfThree(Aldric);
+        model.Click(RightClickOnGround(64f, 32f));
+
+        ClickResult select = model.SlotSelect(new SlotSelectEvent(2));
+        ClickResult toggle = model.SlotSelect(new SlotSelectEvent(3, Shift: true));
+        ClickResult all = model.SelectAll();
+
+        Assert.Empty(select.Orders);
+        Assert.Empty(toggle.Orders);
+        Assert.Empty(all.Orders);
+    }
+
+    [Fact]
+    public void A_right_click_after_a_slot_select_moves_exactly_that_party_member()
+    {
+        SelectionModel model = PartyOfThree(Aldric, Cerys);
+        model.SlotSelect(new SlotSelectEvent(2));
+
+        ClickResult result = model.Click(RightClickOnGround(300f, 120f,
+            Standing((Aldric, 100f, 100f), (Brenna, 120f, 300f), (Cerys, 500f, 80f))));
+
+        Assert.Equal(new Order[] { new MoveOrder(Brenna, new WorldPosition(300f, 120f)) }, result.Orders);
+    }
 }

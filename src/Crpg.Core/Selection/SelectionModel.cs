@@ -10,7 +10,15 @@ public sealed class SelectionModel
 {
     private static readonly IReadOnlyList<Order> NoOrders = Array.Empty<Order>();
 
+    private readonly IReadOnlyList<PartyMemberId> _portraitSlots;
+
     private ImmutableHashSet<PartyMemberId> _selection = ImmutableHashSet<PartyMemberId>.Empty;
+
+    /// <summary>A model for a party whose party members are given in portrait slot order: slot 1 first.</summary>
+    public SelectionModel(IReadOnlyList<PartyMemberId>? portraitSlots = null)
+    {
+        _portraitSlots = portraitSlots ?? Array.Empty<PartyMemberId>();
+    }
 
     public IReadOnlySet<PartyMemberId> Selection => _selection;
 
@@ -81,6 +89,38 @@ public sealed class SelectionModel
         _selection = box.Shift
             ? _selection.Union(box.PartyMembers)
             : box.PartyMembers.ToImmutableHashSet();
+        return CurrentResult();
+    }
+
+    /// <summary>
+    /// Applies one selection by portrait slot and returns the selection after it. Without shift the selection becomes
+    /// only the party member in that slot; with shift that party member is toggled in or out of it. Slot events never
+    /// issue orders. A slot with no party member changes nothing.
+    /// </summary>
+    public ClickResult SlotSelect(SlotSelectEvent slot)
+    {
+        if (slot.Slot < 1 || slot.Slot > _portraitSlots.Count)
+        {
+            return CurrentResult();
+        }
+
+        PartyMemberId partyMember = _portraitSlots[slot.Slot - 1];
+        if (!slot.Shift)
+        {
+            _selection = ImmutableHashSet.Create(partyMember);
+        }
+        else
+        {
+            _selection = _selection.Contains(partyMember) ? _selection.Remove(partyMember) : _selection.Add(partyMember);
+        }
+
+        return CurrentResult();
+    }
+
+    /// <summary>Selects every party member in a portrait slot and returns the selection after it. Issues no orders.</summary>
+    public ClickResult SelectAll()
+    {
+        _selection = _portraitSlots.ToImmutableHashSet();
         return CurrentResult();
     }
 
