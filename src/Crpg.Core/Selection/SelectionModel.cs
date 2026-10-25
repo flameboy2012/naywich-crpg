@@ -19,15 +19,15 @@ public sealed class SelectionModel
     {
         ClickButton.Left when click.Shift => ShiftLeftClick(click.Target),
         ClickButton.Left => LeftClick(click.Target),
-        ClickButton.Right => RightClick(click.Target),
+        ClickButton.Right => RightClick(click.Target, click.PartyMemberPositions),
         _ => CurrentResult(),
     };
 
     /// <summary>
-    /// Right-click on ground, or on a party member's spot, sends every selected party member there; the selection
-    /// is unchanged.
+    /// Right-click on ground, or on a party member's spot, sends every selected party member there, each to their own
+    /// spread slot; the selection is unchanged.
     /// </summary>
-    private ClickResult RightClick(ClickTarget target)
+    private ClickResult RightClick(ClickTarget target, IReadOnlyDictionary<PartyMemberId, WorldPosition> standing)
     {
         WorldPosition? destination = target switch
         {
@@ -40,7 +40,9 @@ public sealed class SelectionModel
             return CurrentResult();
         }
 
-        Order[] orders = _selection.Select(id => (Order)new MoveOrder(id, position)).ToArray();
+        Order[] orders = SpreadSlots.Assign(_selection, position, standing)
+            .Select(slot => (Order)new MoveOrder(slot.PartyMember, slot.Destination))
+            .ToArray();
         return new ClickResult(_selection, orders);
     }
 
