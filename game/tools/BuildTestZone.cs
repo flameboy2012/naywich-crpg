@@ -3,8 +3,8 @@ using Godot;
 namespace Crpg.Tools;
 
 /// <summary>
-/// Builds the flat isometric test zone: res://zones/test_tiles.tres (TileSet) and res://zones/TestZone.tscn,
-/// with a NavigationRegion2D baked from the ground tiles. Needs res://art/tiles.png imported first (see GenArt).
+/// Builds the isometric test zone: res://zones/test_tiles.tres (TileSet) and res://zones/TestZone.tscn, with
+/// obstacle tiles and a NavigationRegion2D baked from the ground tiles, with holes at the obstacles. Needs res://art/tiles.png imported first (see GenArt).
 /// Run from game/ after dotnet build:
 ///   godot --headless --path . --quit-after 60 --script res://tools/BuildTestZone.cs
 /// The output is committed; rerun this only to change the zone layout or navigation.
@@ -22,6 +22,22 @@ public partial class BuildTestZone : SceneTree
 
     /// <summary>One tile's diamond in tile-local coordinates (centred on the tile).</summary>
     private static readonly Vector2[] Diamond = { new(-32, 0), new(0, -16), new(32, 0), new(0, 16) };
+
+    /// <summary>Atlas coordinates of the obstacle tile in res://art/tiles.png.</summary>
+    private static readonly Vector2I ObstacleTile = new(2, 0);
+
+    /// <summary>
+    /// Obstacle layout, as inclusive cell rectangles (x0, y0, x1, y1). The party member starts at cell (8, 12):
+    /// a long wall to their west, two blocks and an L to the east. Clear of the paths SelectionCheck and MoveCheck use.
+    /// </summary>
+    private static readonly (int X0, int Y0, int X1, int Y1)[] Obstacles =
+    {
+        (5, 3, 5, 16),     // wall
+        (16, 4, 18, 6),    // block, its middle (17, 5) is used by ObstacleCheck as an unreachable target
+        (14, 15, 16, 17),  // block
+        (19, 12, 21, 12),  // L, arm
+        (21, 13, 21, 14),  // L, leg
+    };
 
     private Node2D _zone = null!;
     private NavigationRegion2D _region = null!;
@@ -45,7 +61,8 @@ public partial class BuildTestZone : SceneTree
         {
             for (int y = 0; y < Size; y++)
             {
-                ground.SetCell(new Vector2I(x, y), sourceId, new Vector2I((x + y) % 2, 0));
+                Vector2I atlas = IsObstacle(x, y) ? ObstacleTile : new Vector2I((x + y) % 2, 0);
+                ground.SetCell(new Vector2I(x, y), sourceId, atlas);
             }
         }
 
@@ -88,6 +105,7 @@ public partial class BuildTestZone : SceneTree
             TileLayout = TileSet.TileLayoutEnum.DiamondDown,
             TileSize = new Vector2I(64, 32),
         };
+        tileSet.AddPhysicsLayer();      // layer 0: obstacle collision (physics layer 1, characters collide with it)
         tileSet.AddNavigationLayer();   // layer 0: walkable ground
         var atlas = new TileSetAtlasSource
         {
@@ -106,8 +124,28 @@ public partial class BuildTestZone : SceneTree
             atlas.GetTileData(coords, 0).SetNavigationPolygon(0, walkable);
         }
 
+        // Obstacle: no navigation polygon, and a collision polygon over the whole diamond. The bake both leaves
+        // it out and treats the collision as an obstruction, so the mesh gets a hole with the agent margin.
+        atlas.CreateTile(ObstacleTile);
+        TileData obstacle = atlas.GetTileData(ObstacleTile, 0);
+        obstacle.AddCollisionPolygon(0);
+        obstacle.SetCollisionPolygonPoints(0, 0, Diamond);
+
         Check(ResourceSaver.Save(tileSet, TileSetPath), TileSetPath);
         return GD.Load<TileSet>(TileSetPath);   // reload so the scene references the file, not an embedded copy
+    }
+
+    private static bool IsObstacle(int x, int y)
+    {
+        foreach (var (x0, y0, x1, y1) in Obstacles)
+        {
+            if (x >= x0 && x <= x1 && y >= y0 && y <= y1)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void Check(Error err, string what)

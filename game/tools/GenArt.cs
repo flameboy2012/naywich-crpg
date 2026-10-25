@@ -16,6 +16,8 @@ public partial class GenArt : SceneTree
 
     private static readonly Color GroundLight = new(0.36f, 0.62f, 0.32f);
     private static readonly Color GroundDark = new(0.30f, 0.54f, 0.27f);
+    private static readonly Color ObstacleFill = new(0.55f, 0.53f, 0.50f);
+    private static readonly Color ObstacleEdge = new(0.22f, 0.20f, 0.20f);
     private static readonly Color CapsuleBody = new(0.25f, 0.45f, 0.85f);
     private static readonly Color CapsuleEdge = new(0.12f, 0.22f, 0.45f);
     private static readonly Color Ring = new(1.0f, 0.85f, 0.2f);
@@ -38,28 +40,39 @@ public partial class GenArt : SceneTree
         }
     }
 
-    /// <summary>Atlas of two ground tiles side by side, (0,0) light and (1,0) dark, for a checker pattern.</summary>
+    /// <summary>
+    /// Atlas of three tiles side by side: (0,0) light and (1,0) dark ground for a checker pattern, and (2,0) an
+    /// obstacle, grey stone with a dark rim and a dark cross so it never reads as ground.
+    /// </summary>
     private static Image Tiles()
     {
-        var img = Image.CreateEmpty(TileWidth * 2, TileHeight, false, Image.Format.Rgba8);
-        Color[] colours = { GroundLight, GroundDark };
-        for (int t = 0; t < colours.Length; t++)
+        var img = Image.CreateEmpty(TileWidth * 3, TileHeight, false, Image.Format.Rgba8);
+        Color[] ground = { GroundLight, GroundDark };
+        for (int t = 0; t < 3; t++)
         {
             for (int y = 0; y < TileHeight; y++)
             {
                 for (int x = 0; x < TileWidth; x++)
                 {
-                    float d = Mathf.Abs(x - (TileWidth - 1) / 2f) / (TileWidth / 2f)
-                            + Mathf.Abs(y - (TileHeight - 1) / 2f) / (TileHeight / 2f);
-                    if (d <= 1f)
+                    float dx = Mathf.Abs(x - (TileWidth - 1) / 2f) / (TileWidth / 2f);
+                    float dy = Mathf.Abs(y - (TileHeight - 1) / 2f) / (TileHeight / 2f);
+                    if (dx + dy <= 1f)
                     {
-                        img.SetPixel(t * TileWidth + x, y, colours[t]);
+                        img.SetPixel(t * TileWidth + x, y, t < 2 ? ground[t] : ObstacleColour(dx, dy));
                     }
                 }
             }
         }
 
         return img;
+    }
+
+    /// <summary>Obstacle pixel: dark rim at the diamond edge, dark cross joining the edge midpoints, grey fill.</summary>
+    private static Color ObstacleColour(float dx, float dy)
+    {
+        bool rim = dx + dy > 0.86f;
+        bool cross = Mathf.Abs(dx - dy) < 0.08f;
+        return rim || cross ? ObstacleEdge : ObstacleFill;
     }
 
     /// <summary>A 24x48 upright capsule with a dark edge.</summary>
