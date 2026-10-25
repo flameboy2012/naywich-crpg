@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Crpg.Core.Combat;
 using Godot;
@@ -7,15 +8,19 @@ namespace Crpg;
 /// <summary>
 /// Autoload that owns the one seeded RNG and exposes the Core combat rules and combat log to the game. A thin wrapper:
 /// the rules themselves live in <see cref="CombatRules"/>. The seed is random unless the command line passes
-/// <c>--seed N</c>; it is printed to the console and is the combat log's first line.
+/// <c>--seed N</c>; it is printed to the console and is the combat log's first line. A defeat restart starts a new
+/// fight with <see cref="StartNewFight"/>, since the autoload outlives the reloaded scene.
 /// </summary>
 public partial class Rules : Node
 {
     /// <summary>The autoload's path, for <see cref="Node.GetNode{T}(NodePath)"/>.</summary>
     public const string Path = "/root/Rules";
 
-    /// <summary>The seed every roll this run comes from.</summary>
+    /// <summary>The seed every roll in the current fight comes from.</summary>
     public int Seed { get; private set; }
+
+    /// <summary>The seed given with <c>--seed N</c>, or null for a random seed each fight.</summary>
+    private int? _commandLineSeed;
 
     /// <summary>The combat rules, rolling through the seeded RNG.</summary>
     public CombatRules Combat { get; private set; } = null!;
@@ -38,7 +43,17 @@ public partial class Rules : Node
     public override void _EnterTree()
     {
         CombatSpeed = ReadCombatSpeed();
-        Seed = ChooseSeed();
+        _commandLineSeed = FindCommandLineSeed();
+        StartNewFight();
+    }
+
+    /// <summary>
+    /// Starts a fight from a fresh seed: the <c>--seed</c> one if given, else a new random one. The RNG restarts from
+    /// it, the combat log is cleared down to its seed line, and the seed is printed so the fight can be replayed.
+    /// </summary>
+    public void StartNewFight()
+    {
+        Seed = FightSeed.Choose(_commandLineSeed, () => (int)(GD.Randi() & int.MaxValue));
         Combat = new CombatRules(new SeededDiceRoller(Seed));
         Log = new CombatLog(Seed);
         GD.Print($"Rules: {CombatLog.SeedLine(Seed)}");
@@ -59,22 +74,18 @@ public partial class Rules : Node
         return CombatRules.NormalCombatSpeed;
     }
 
-    /// <summary>The seed from <c>--seed N</c> (engine or user arguments), or a random one.</summary>
-    private static int ChooseSeed()
+    /// <summary>The seed from <c>--seed N</c> (engine or user arguments), or null for a random seed.</summary>
+    private static int? FindCommandLineSeed()
     {
         string[] args = OS.GetCmdlineArgs().Concat(OS.GetCmdlineUserArgs()).ToArray();
         try
         {
-            if (SeedArgument.Find(args) is int seed)
-            {
-                return seed;
-            }
+            return SeedArgument.Find(args);
         }
-        catch (System.FormatException error)
+        catch (FormatException error)
         {
             GD.PushError($"Rules: {error.Message} Using a random seed.");
+            return null;
         }
-
-        return (int)(GD.Randi() & int.MaxValue);
     }
 }

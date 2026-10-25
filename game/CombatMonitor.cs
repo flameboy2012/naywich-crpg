@@ -7,8 +7,9 @@ namespace Crpg;
 /// <summary>
 /// Watches where combat stands each physics frame through <see cref="CombatRules.AssessCombat"/>. At combat end (no
 /// living enemy aware of the party) every downed party member gets up at 1 HP. When every party member is down, the
-/// defeat banner shows and the scene restarts after <see cref="RestartSeconds"/>. Pausable, so a paused game neither
-/// recovers nor restarts.
+/// defeat banner shows and the scene restarts after <see cref="RestartSeconds"/> as a new fight: a new seed (the
+/// <c>--seed</c> one if given), a fresh RNG and an empty combat log. Pausable, so a paused game neither recovers nor
+/// restarts.
 /// </summary>
 public partial class CombatMonitor : Node
 {
@@ -77,6 +78,8 @@ public partial class CombatMonitor : Node
             return;
         }
 
+        // The Rules autoload outlives the scene, so the new fight gets its own seed, RNG and combat log.
+        GetNode<Rules>(Rules.Path).StartNewFight();
         GetTree().ReloadCurrentScene();
     }
 }

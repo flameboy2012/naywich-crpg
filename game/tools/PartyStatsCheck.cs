@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Crpg.Core.Combat;
 using Godot;
 
 namespace Crpg.Tools;
@@ -8,7 +9,8 @@ namespace Crpg.Tools;
 /// Headless check for party stats and the combat log: loads Main with a fixed seed and checks that the party members,
 /// in portrait slot order, are the spec's fighter, cleric, rogue and wizard with their derived AC, HP and attacks, that
 /// each shows a full HP bar, and that the combat log panel sits in the bottom-left corner with the seed as its first
-/// line. Run from game/ after dotnet build, with the seed:
+/// line. Last, a new fight (as a defeat restart starts) keeps the seed, rolls with a new RNG and clears the log down
+/// to the seed line. Run from game/ after dotnet build, with the seed:
 ///   godot --headless --path . --fixed-fps 60 --quit-after 120 --script res://tools/PartyStatsCheck.cs --seed 4242
 /// Prints "PartyStatsCheck: PASSED" and exits 0, or prints ERROR lines and exits 1.
 /// </summary>
@@ -66,5 +68,14 @@ public partial class PartyStatsCheck : HeadlessCheck
         Expect($"the combat log panel sits in the bottom-left corner (rect {rect}, viewport {viewport})",
             rect.Position.X < viewport.X / 4 && rect.End.Y > viewport.Y * 3 / 4 && rect.End.Y <= viewport.Y
             && rect.Size.Y > 0);
+
+        // A defeat restart starts a new fight: the log holds only the seed line again, and --seed still applies.
+        CombatRules oldRules = rules.Combat;
+        rules.Log.Add("an attack line from the lost fight");
+        rules.StartNewFight();
+        Expect($"a new fight keeps the --seed seed (got {rules.Seed})", rules.Seed == ExpectedSeed);
+        Expect($"a new fight clears the combat log down to the seed line (got {string.Join(" | ", rules.Log.Lines)})",
+            rules.Log.Lines.SequenceEqual([$"Seed: {ExpectedSeed}"]));
+        Expect("a new fight rolls with a new RNG", rules.Combat != oldRules);
     }
 }
