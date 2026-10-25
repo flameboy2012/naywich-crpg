@@ -2,7 +2,7 @@
 
 A party-based CRPG ported from a D&D 5e hexcrawl. The party explores a graph of zones around a border village, fights in real time with pause, and gets drawn into a hunt for two artifacts.
 
-## Actors
+## Characters
 
 **Character**:
 Anyone in a zone that has stats: a party member, monster, NPC or escort.
