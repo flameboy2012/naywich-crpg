@@ -26,14 +26,13 @@ public partial class MarkerCheck : HeadlessCheck
 
     protected override IEnumerator<int> Run()
     {
-        var ground = Root.GetNode<TileMapLayer>("Main/ZoneContainer/TestZone/NavigationRegion2D/Ground");
-        Rid map = ground.GetParent<NavigationRegion2D>().GetNavigationMap();
-        Vector2 groundPoint = PartyMember.GlobalPosition;
-        for (int i = 0; i < 120 && NavigationServer2D.MapGetClosestPoint(map, groundPoint).DistanceTo(groundPoint) > 0.5f; i++)
+        foreach (int step in WaitForNavigationSync())
         {
-            yield return 1;   // map queries return (0, 0) until the map has synced with the zone's region
+            yield return step;
         }
 
+        TileMapLayer ground = Ground;
+        Rid map = NavigationMap;
         Vector2 target = PartyMember.GlobalPosition + new Vector2(150, -60);
         Click(MouseButton.Right, target);
         yield return 2;
@@ -62,16 +61,14 @@ public partial class MarkerCheck : HeadlessCheck
         Expect("the marker is gone after the fade time", Markers.Count == 0);
 
         // The whole party: one marker per party member, at their own path end and in their own tint.
-        foreach (Character member in PartyMembers.Skip(1))
+        foreach (int step in SelectWholeParty())
         {
-            ClickPartyMember(MouseButton.Left, member, shift: true);
-            yield return 2;
+            yield return step;
         }
 
-        Expect("the whole party is selected", PartyMembers.All(member => member.SelectionRingVisible));
         Click(MouseButton.Right, target);
         yield return 2;
-        ExpectMarkerPerPartyMember("first group right-click");
+        ExpectMarkerPerPartyMember("first right-click with the whole party selected");
 
         yield return 10;
         Vector2 second = target + new Vector2(-120, 90);
@@ -88,11 +85,11 @@ public partial class MarkerCheck : HeadlessCheck
     {
         List<MoveMarker> markers = Markers;
         Expect($"{name}: one marker per selected party member ({markers.Count})", markers.Count == PartyMembers.Count);
-        foreach (Character member in PartyMembers)
+        foreach (Character partyMember in PartyMembers)
         {
-            Expect($"{name}: {member.Name} has a marker in their tint at their path end ({member.PathEnd})",
-                markers.Count(marker => marker.Tint == member.Tint
-                                        && marker.GlobalPosition.DistanceTo(member.PathEnd) < OnPointTolerance) == 1);
+            Expect($"{name}: {partyMember.Name} has a marker in their tint at their path end ({partyMember.PathEnd})",
+                markers.Count(marker => marker.Tint == partyMember.Tint
+                                        && marker.GlobalPosition.DistanceTo(partyMember.PathEnd) < OnPointTolerance) == 1);
         }
     }
 }

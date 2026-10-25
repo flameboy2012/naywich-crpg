@@ -6,7 +6,7 @@ namespace Crpg.Tools;
 
 /// <summary>
 /// Headless smoke check for right-click movement: loads Main, pushes real clicks through the viewport and checks
-/// party members' positions, ending with a group move of the whole party. Run from game/ after dotnet build:
+/// party members' positions, ending with a move order to the whole party. Run from game/ after dotnet build:
 ///   godot --headless --path . --fixed-fps 60 --quit-after 4000 --script res://tools/MoveCheck.cs
 /// Prints "MoveCheck: PASSED" and exits 0, or prints ERROR lines and exits 1.
 /// </summary>
@@ -52,8 +52,8 @@ public partial class MoveCheck : HeadlessCheck
         }
 
         Vector2 stopped = PartyMember.GlobalPosition;
-        Expect($"arrives at the second point (off by {stopped.DistanceTo(second):0.0} px)",
-            !PartyMember.IsMoving && stopped.DistanceTo(second) < ArriveTolerance);
+        Expect($"arrives at the second point (off by {stopped.DistanceTo(second):0.0} px, limit {UnobstructedArriveTolerance} px)",
+            !PartyMember.IsMoving && stopped.DistanceTo(second) <= UnobstructedArriveTolerance);
         yield return 60;
         Expect("stays still after arriving (no jitter)", PartyMember.GlobalPosition.DistanceTo(stopped) < StillTolerance);
         Expect("the unselected party members never moved", others.All(other =>
@@ -70,20 +70,19 @@ public partial class MoveCheck : HeadlessCheck
             yield return 1;
         }
 
-        Expect($"another party member, once selected, walks to the clicked point (off by {last.GlobalPosition.DistanceTo(lastTarget):0.0} px)",
-            !last.IsMoving && last.GlobalPosition.DistanceTo(lastTarget) < ArriveTolerance);
+        Expect($"another party member, once selected, walks to the clicked point (off by "
+               + $"{last.GlobalPosition.DistanceTo(lastTarget):0.0} px, limit {UnobstructedArriveTolerance} px)",
+            !last.IsMoving && last.GlobalPosition.DistanceTo(lastTarget) <= UnobstructedArriveTolerance);
         Expect("the first party member stays put once deselected", PartyMember.GlobalPosition.DistanceTo(stopped) < StillTolerance);
 
-        IEnumerator<int> occupied = OccupiedSlotMove();
-        while (occupied.MoveNext())
+        foreach (int step in OccupiedSlotMove())
         {
-            yield return occupied.Current;
+            yield return step;
         }
 
-        IEnumerator<int> group = GroupMove(start);
-        while (group.MoveNext())
+        foreach (int step in SpreadMove(start))
         {
-            yield return group.Current;
+            yield return step;
         }
     }
 
@@ -91,7 +90,7 @@ public partial class MoveCheck : HeadlessCheck
     /// Sends the first party member, alone, to where an idle party member stands: the move can't end on the spot, so the
     /// arrival rule finishes it once they are close and have stopped making progress, instead of jittering forever.
     /// </summary>
-    private IEnumerator<int> OccupiedSlotMove()
+    private IEnumerable<int> OccupiedSlotMove()
     {
         Character mover = PartyMember;
         Character idle = PartyMembers[1];
@@ -152,36 +151,32 @@ public partial class MoveCheck : HeadlessCheck
         Expect("walks back off the occupied spot", !mover.IsMoving && mover.GlobalPosition.DistanceTo(moverStart) < ArriveTolerance);
     }
 
-    /// <summary>Selects the whole party and right-clicks one point: everyone ends at their own spot.</summary>
-    private IEnumerator<int> GroupMove(Vector2 target)
+    /// <summary>Selects the whole party and right-clicks one point: everyone ends at their own spread slot.</summary>
+    private IEnumerable<int> SpreadMove(Vector2 target)
     {
-        Expect("navigation avoidance is on for every party member", PartyMembers.All(member => member.AvoidanceEnabled));
-        Expect("party members' bodies don't collide with each other", PartyMembers.All(member =>
-            PartyMembers.All(other => (member.CollisionMask & other.CollisionLayer) == 0)));
+        Expect("navigation avoidance is on for every party member", PartyMembers.All(partyMember => partyMember.AvoidanceEnabled));
+        Expect("party members' bodies don't collide with each other", PartyMembers.All(partyMember =>
+            PartyMembers.All(other => (partyMember.CollisionMask & other.CollisionLayer) == 0)));
 
-        ClickPartyMember(MouseButton.Left, PartyMembers[0]);
-        foreach (Character member in PartyMembers.Skip(1))
+        foreach (int step in SelectWholeParty())
         {
-            yield return 2;
-            ClickPartyMember(MouseButton.Left, member, shift: true);
+            yield return step;
         }
-
-        yield return 2;
-        Expect("the whole party is selected", PartyMembers.All(member => member.SelectionRingVisible));
 
         Click(MouseButton.Right, target);
         yield return 2;
-        Expect("a group right-click sets every party member moving", PartyMembers.All(member => member.IsMoving));
-        for (int i = 0; i < 1200 && PartyMembers.Any(member => member.IsMoving); i++)
+        Expect("a right-click with the whole party selected sets every party member moving",
+            PartyMembers.All(partyMember => partyMember.IsMoving));
+        for (int i = 0; i < 1200 && PartyMembers.Any(partyMember => partyMember.IsMoving); i++)
         {
             yield return 1;
         }
 
-        Expect("every party member arrives", PartyMembers.All(member => !member.IsMoving));
-        Vector2[] ends = PartyMembers.Select(member => member.GlobalPosition).ToArray();
+        Expect("every party member arrives", PartyMembers.All(partyMember => !partyMember.IsMoving));
+        Vector2[] ends = PartyMembers.Select(partyMember => partyMember.GlobalPosition).ToArray();
         float closest = ends.SelectMany((end, i) => ends.Skip(i + 1).Select(other => end.DistanceTo(other))).Min();
         float nearestToClick = ends.Min(end => end.DistanceTo(target));
-        Expect($"a group move ends with each party member at a distinct point (closest pair {closest:0.0} px apart)",
+        Expect($"the whole party ends with each party member at a distinct point (closest pair {closest:0.0} px apart)",
             closest > 2 * PartyMember.FeetRadius);
         Expect($"one party member ends on the clicked point (off by {nearestToClick:0.0} px)", nearestToClick < ArriveTolerance);
     }

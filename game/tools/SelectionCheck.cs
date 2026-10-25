@@ -108,7 +108,7 @@ public partial class SelectionCheck : HeadlessCheck
         Expect("an empty box clears the selection", RingsShow());
 
         ClickPartyMember(MouseButton.Left, first);
-        Vector2 onThird = third.GlobalPosition + new Vector2(0, -24);
+        Vector2 onThird = third.GlobalPosition + PartyMemberClickOffset;
         BeginDrag(onThird, onThird + new Vector2(3, 2));
         yield return 1;
         Expect("box hidden for a drag under the threshold", !controller.BoxVisible);

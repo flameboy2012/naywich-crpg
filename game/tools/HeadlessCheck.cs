@@ -14,16 +14,25 @@ public abstract partial class HeadlessCheck : SceneTree
     /// <summary>How close (px) counts as "arrived": the agent's target distance plus one physics step.</summary>
     protected const float ArriveTolerance = 6f;
 
+    /// <summary>
+    /// How close (px) a normal unobstructed move must end to its destination: the agent's 4 px target distance (#13).
+    /// Measured endings are 3.5 to 3.8 px.
+    /// </summary>
+    protected const float UnobstructedArriveTolerance = 4f;
+
     /// <summary>Distance (px) under which a party member counts as not having moved.</summary>
     protected const float StillTolerance = 0.01f;
 
     /// <summary>Physics frames to wait after loading Main, so the zone is loaded and the navigation map synced.</summary>
     private const int SettleFrames = 5;
 
+    /// <summary>Frames to wait at most for the navigation map to sync with the zone.</summary>
+    private const int NavigationSyncFrames = 120;
+
     private const string ZonePath = "Main/ZoneContainer/TestZone";
 
     /// <summary>Where to click, relative to the party member's feet, to hit them: the middle of the capsule sprite.</summary>
-    private static readonly Vector2 PartyMemberClickOffset = new(0, -24);
+    protected static readonly Vector2 PartyMemberClickOffset = new(0, -24);
 
     private IEnumerator<int> _steps = null!;
     private int _wait;
@@ -34,6 +43,12 @@ public abstract partial class HeadlessCheck : SceneTree
 
     /// <summary>The first party member: the one single-character checks drive.</summary>
     protected Character PartyMember => PartyMembers[0];
+
+    /// <summary>The zone's ground layer.</summary>
+    protected TileMapLayer Ground => Root.GetNode<TileMapLayer>(ZonePath + "/NavigationRegion2D/Ground");
+
+    /// <summary>The navigation map the zone's region is on.</summary>
+    protected Rid NavigationMap => Ground.GetParent<NavigationRegion2D>().GetNavigationMap();
 
     public override void _Initialize()
     {
@@ -126,6 +141,36 @@ public abstract partial class HeadlessCheck : SceneTree
     /// <summary>Clicks on the given party member's capsule, optionally with shift held.</summary>
     protected void ClickPartyMember(MouseButton button, Character partyMember, bool shift = false) =>
         Click(button, partyMember.GlobalPosition + PartyMemberClickOffset, shift);
+
+    /// <summary>
+    /// Steps that wait until the navigation map has synced with the zone: map queries return (0, 0) for several frames
+    /// after loading, so wait until the ground under the first party member maps to itself.
+    /// </summary>
+    protected IEnumerable<int> WaitForNavigationSync()
+    {
+        Rid map = NavigationMap;
+        Vector2 groundPoint = PartyMember.GlobalPosition;
+        for (int i = 0;
+             i < NavigationSyncFrames && NavigationServer2D.MapGetClosestPoint(map, groundPoint).DistanceTo(groundPoint) > 0.5f;
+             i++)
+        {
+            yield return 1;
+        }
+    }
+
+    /// <summary>Steps that select the whole party: a click on the first party member, then shift-clicks on the rest.</summary>
+    protected IEnumerable<int> SelectWholeParty()
+    {
+        ClickPartyMember(MouseButton.Left, PartyMembers[0]);
+        foreach (Character partyMember in PartyMembers.Skip(1))
+        {
+            yield return 2;
+            ClickPartyMember(MouseButton.Left, partyMember, shift: true);
+        }
+
+        yield return 2;
+        Expect("the whole party is selected", PartyMembers.All(partyMember => partyMember.SelectionRingVisible));
+    }
 
     protected void Expect(string name, bool ok)
     {

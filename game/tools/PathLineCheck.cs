@@ -24,42 +24,37 @@ public partial class PathLineCheck : HeadlessCheck
 
     protected override IEnumerator<int> Run()
     {
-        var ground = Root.GetNode<TileMapLayer>("Main/ZoneContainer/TestZone/NavigationRegion2D/Ground");
-        Rid map = ground.GetParent<NavigationRegion2D>().GetNavigationMap();
-        Vector2 groundPoint = PartyMember.GlobalPosition;
-        for (int i = 0; i < 120 && NavigationServer2D.MapGetClosestPoint(map, groundPoint).DistanceTo(groundPoint) > 0.5f; i++)
+        foreach (int step in WaitForNavigationSync())
         {
-            yield return 1;   // map queries return (0, 0) until the map has synced with the zone's region
+            yield return step;
         }
 
-        Expect("no party member shows a path line before any move", PartyMembers.All(member => LineOf(member) is null));
+        Expect("no party member shows a path line before any move", PartyMembers.All(partyMember => LineOf(partyMember) is null));
 
         // The whole party, sent a few tiles away.
-        ClickPartyMember(MouseButton.Left, PartyMembers[0]);
-        foreach (Character member in PartyMembers.Skip(1))
+        foreach (int step in SelectWholeParty())
         {
-            yield return 2;
-            ClickPartyMember(MouseButton.Left, member, shift: true);
+            yield return step;
         }
 
-        yield return 2;
-        Expect("the whole party is selected", PartyMembers.All(member => member.SelectionRingVisible));
         Vector2 target = PartyMember.GlobalPosition + new Vector2(150, -60);
         Click(MouseButton.Right, target);
         yield return 3;
-        Expect("a group right-click sets every party member moving", PartyMembers.All(member => member.IsMoving));
-        foreach (Character member in PartyMembers)
+        Expect("a right-click with the whole party selected sets every party member moving",
+            PartyMembers.All(partyMember => partyMember.IsMoving));
+        foreach (Character partyMember in PartyMembers)
         {
-            ExpectLine(member, "after a group right-click");
+            ExpectLine(partyMember, "after a right-click with the whole party selected");
         }
 
-        Dictionary<Character, float> lengths = PartyMembers.ToDictionary(member => member, member => Length(LineOf(member)));
+        Dictionary<Character, float> lengths =
+            PartyMembers.ToDictionary(partyMember => partyMember, partyMember => Length(LineOf(partyMember)));
         yield return 30;
-        foreach (Character member in PartyMembers)
+        foreach (Character partyMember in PartyMembers)
         {
-            float now = Length(LineOf(member));
-            Expect($"{member.Name}'s line shrinks as they walk ({lengths[member]:0.0} px, then {now:0.0} px)",
-                now < lengths[member] - 5f);
+            float now = Length(LineOf(partyMember));
+            Expect($"{partyMember.Name}'s line shrinks as they walk ({lengths[partyMember]:0.0} px, then {now:0.0} px)",
+                now < lengths[partyMember] - 5f);
         }
 
         // Deselecting a moving party member hides their line; reselecting them while they still move shows it again.
@@ -68,7 +63,8 @@ public partial class PathLineCheck : HeadlessCheck
         yield return 2;
         Expect("shift-click deselects a moving party member", !second.SelectionRingVisible && second.IsMoving);
         Expect("a deselected moving party member shows no line", LineOf(second) is null);
-        Expect("the others still show their lines", PartyMembers.Except(new[] { second }).All(member => LineOf(member) is not null));
+        Expect("the others still show their lines",
+            PartyMembers.Except(new[] { second }).All(partyMember => LineOf(partyMember) is not null));
         ClickPartyMember(MouseButton.Left, second, shift: true);
         yield return 2;
         Expect("shift-click reselects them while they still move", second.SelectionRingVisible && second.IsMoving);
@@ -77,60 +73,61 @@ public partial class PathLineCheck : HeadlessCheck
         // A plain click on one party member leaves the rest moving but unselected: they show no line.
         ClickPartyMember(MouseButton.Left, PartyMember);
         yield return 2;
-        Expect("the others keep walking once deselected", PartyMembers.Skip(1).All(member => member.IsMoving));
-        Expect("moving party members who aren't selected show no line", PartyMembers.Skip(1).All(member => LineOf(member) is null));
+        Expect("the others keep walking once deselected", PartyMembers.Skip(1).All(partyMember => partyMember.IsMoving));
+        Expect("moving party members who aren't selected show no line",
+            PartyMembers.Skip(1).All(partyMember => LineOf(partyMember) is null));
         ExpectLine(PartyMember, "while still selected");
 
         // Arrival (by reaching the destination or by the no-progress rule) hides the line.
-        for (int i = 0; i < 900 && PartyMembers.Any(member => member.IsMoving); i++)
+        for (int i = 0; i < 900 && PartyMembers.Any(partyMember => partyMember.IsMoving); i++)
         {
             yield return 1;
         }
 
         yield return 2;
-        Expect("every party member arrives", PartyMembers.All(member => !member.IsMoving));
+        Expect("every party member arrives", PartyMembers.All(partyMember => !partyMember.IsMoving));
         Expect("the selected party member still has their ring", PartyMember.SelectionRingVisible);
         Expect("the line hides on arrival", LineOf(PartyMember) is null);
 
         // Selecting idle party members shows no lines.
-        foreach (Character member in PartyMembers.Skip(1))
+        foreach (Character partyMember in PartyMembers.Skip(1))
         {
-            ClickPartyMember(MouseButton.Left, member, shift: true);
+            ClickPartyMember(MouseButton.Left, partyMember, shift: true);
             yield return 2;
         }
 
-        Expect("selected idle party members show no line", PartyMembers.All(member => LineOf(member) is null));
+        Expect("selected idle party members show no line", PartyMembers.All(partyMember => LineOf(partyMember) is null));
     }
 
     /// <summary>The party member's visible path line, if any.</summary>
-    private PathLine? LineOf(Character member)
+    private PathLine? LineOf(Character partyMember)
     {
-        List<PathLine> lines = Lines.Where(line => line.PartyMember == member && line.Visible).ToList();
+        List<PathLine> lines = Lines.Where(line => line.Source.GetParent() == partyMember && line.Visible).ToList();
         if (lines.Count > 1)
         {
-            Expect($"{member.Name} has at most one visible path line ({lines.Count})", false);
+            Expect($"{partyMember.Name} has at most one visible path line ({lines.Count})", false);
         }
 
         return lines.FirstOrDefault();
     }
 
     /// <summary>One visible line, in the party member's tint, from their feet to the end of their path.</summary>
-    private void ExpectLine(Character member, string when)
+    private void ExpectLine(Character partyMember, string when)
     {
-        PathLine? line = LineOf(member);
-        Expect($"{when}: {member.Name} shows a path line", line is not null);
+        PathLine? line = LineOf(partyMember);
+        Expect($"{when}: {partyMember.Name} shows a path line", line is not null);
         if (line is null)
         {
             return;
         }
 
         Vector2[] points = line.Points.Select(point => line.ToGlobal(point)).ToArray();
-        Expect($"{when}: {member.Name}'s line is in their tint", line.DefaultColor == member.Tint);
-        Expect($"{when}: {member.Name}'s line starts at their feet ({(points.Length > 0 ? points[0] : Vector2.Inf)} vs "
-               + $"{member.GlobalPosition})",
-            points.Length >= 2 && points[0].DistanceTo(member.GlobalPosition) < OnPointTolerance);
-        Expect($"{when}: {member.Name}'s line ends at their path end",
-            points.Length >= 2 && points[^1].DistanceTo(member.PathEnd) < OnPointTolerance);
+        Expect($"{when}: {partyMember.Name}'s line is in their tint", line.DefaultColor == partyMember.Tint);
+        Expect($"{when}: {partyMember.Name}'s line starts at their feet ({(points.Length > 0 ? points[0] : Vector2.Inf)} vs "
+               + $"{partyMember.GlobalPosition})",
+            points.Length >= 2 && points[0].DistanceTo(partyMember.GlobalPosition) < OnPointTolerance);
+        Expect($"{when}: {partyMember.Name}'s line ends at their path end",
+            points.Length >= 2 && points[^1].DistanceTo(partyMember.PathEnd) < OnPointTolerance);
     }
 
     private static float Length(PathLine? line)

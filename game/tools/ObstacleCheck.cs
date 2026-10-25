@@ -19,7 +19,6 @@ public partial class ObstacleCheck : HeadlessCheck
     /// <summary>The middle tile of an obstacle block, unreachable.</summary>
     private static readonly Vector2I InsideObstacleTile = new(17, 5);
 
-
     private static readonly Vector2 ViewSize = new(1920, 1080);
 
     private TileMapLayer _ground = null!;
@@ -36,14 +35,14 @@ public partial class ObstacleCheck : HeadlessCheck
 
     protected override IEnumerator<int> Run()
     {
-        _ground = Root.GetNode<TileMapLayer>("Main/ZoneContainer/TestZone/NavigationRegion2D/Ground");
+        _ground = Ground;
         List<Vector2I> obstacleTiles = _ground.GetUsedCells().Where(IsObstacle).ToList();
         _obstacles = obstacleTiles.Select(TileDiamond).ToList();
-        Rid map = _ground.GetParent<NavigationRegion2D>().GetNavigationMap();
+        Rid map = NavigationMap;
         Vector2 groundCentre = TileCentre(_ground.LocalToMap(_ground.ToLocal(PartyMember.GlobalPosition)));
-        for (int i = 0; i < 120 && NavigationServer2D.MapGetClosestPoint(map, groundCentre) == Vector2.Zero; i++)
+        foreach (int step in WaitForNavigationSync())
         {
-            yield return 1;   // map queries return (0, 0) until the map has synced with the zone's region
+            yield return step;
         }
 
         Vector2 groundClosest = NavigationServer2D.MapGetClosestPoint(map, groundCentre);
