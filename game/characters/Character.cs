@@ -94,6 +94,12 @@ public partial class Character : CharacterBody2D
     }
 
     /// <summary>
+    /// Where the current navigation path ends: where the character will really stop, which differs from the requested
+    /// destination when that is unreachable. Read-only; the zero vector before any move.
+    /// </summary>
+    public Vector2 PathEnd => _agent.GetFinalPosition();
+
+    /// <summary>
     /// Walks to a global position along the zone's navigation mesh. Calling it again replaces the current
     /// destination. An unreachable point sends the character to the closest reachable point.
     /// </summary>

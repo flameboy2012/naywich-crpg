@@ -20,6 +20,10 @@ public partial class SelectionController : Node
     [Export]
     public float DragThreshold { get; set; } = 6f;
 
+    /// <summary>Where move markers are added: a world-space node drawn above the zone.</summary>
+    [Export]
+    public Node2D MoveMarkers { get; set; } = null!;
+
     private readonly SelectionModel _model = new();
 
     private Panel _box = null!;
@@ -168,19 +172,41 @@ public partial class SelectionController : Node
         return null;
     }
 
-    private static void Apply(ClickResult result, Dictionary<PartyMemberId, PlayerControl> partyMembers)
+    private void Apply(ClickResult result, Dictionary<PartyMemberId, PlayerControl> partyMembers)
     {
         foreach ((PartyMemberId id, PlayerControl partyMember) in partyMembers)
         {
             partyMember.ShowSelected(result.Selection.Contains(id));
         }
 
+        List<PlayerControl> moved = new();
         foreach (Order order in result.Orders)
         {
             if (order is MoveOrder move && partyMembers.TryGetValue(move.PartyMember, out PlayerControl? partyMember))
             {
                 partyMember.MoveTo(move.Destination.ToVector2());
+                moved.Add(partyMember);
             }
+        }
+
+        if (moved.Count > 0)
+        {
+            ShowMoveMarkers(moved);
+        }
+    }
+
+    /// <summary>Replaces every move marker with one per moved party member, at the real end of their path.</summary>
+    private void ShowMoveMarkers(IEnumerable<PlayerControl> moved)
+    {
+        foreach (Node old in MoveMarkers.GetChildren())
+        {
+            MoveMarkers.RemoveChild(old);
+            old.QueueFree();
+        }
+
+        foreach (PlayerControl partyMember in moved)
+        {
+            MoveMarkers.AddChild(new MoveMarker { Tint = partyMember.Tint, Position = MoveMarkers.ToLocal(partyMember.PathEnd) });
         }
     }
 }

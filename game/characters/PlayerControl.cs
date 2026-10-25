@@ -34,4 +34,10 @@ public partial class PlayerControl : Node
 
     /// <summary>Carries out a move order.</summary>
     public void MoveTo(Vector2 globalPosition) => _character.MoveTo(globalPosition);
+
+    /// <summary>Where the party member's current move really ends: the final point of their navigation path.</summary>
+    public Vector2 PathEnd => _character.PathEnd;
+
+    /// <summary>The party member's colour, for feedback drawn on their behalf.</summary>
+    public Color Tint => _character.Tint;
 }
