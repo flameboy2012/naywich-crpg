@@ -72,20 +72,24 @@ public abstract partial class HeadlessCheck : SceneTree
     {
     }
 
-    /// <summary>Presses and releases a mouse button at a world point, through the viewport.</summary>
-    protected void Click(MouseButton button, Vector2 world)
+    /// <summary>Presses and releases a mouse button at a world point, through the viewport, optionally with shift held.</summary>
+    protected void Click(MouseButton button, Vector2 world, bool shift = false)
     {
         Vector2 screen = Root.GetCanvasTransform() * world;
-        Root.PushInput(new InputEventMouseButton { ButtonIndex = button, Pressed = true, Position = screen }, true);
-        Root.PushInput(new InputEventMouseButton { ButtonIndex = button, Pressed = false, Position = screen }, true);
+        Root.PushInput(
+            new InputEventMouseButton { ButtonIndex = button, Pressed = true, Position = screen, ShiftPressed = shift },
+            true);
+        Root.PushInput(
+            new InputEventMouseButton { ButtonIndex = button, Pressed = false, Position = screen, ShiftPressed = shift },
+            true);
     }
 
     /// <summary>Clicks on the first party member's capsule.</summary>
     protected void ClickPartyMember(MouseButton button) => ClickPartyMember(button, PartyMember);
 
-    /// <summary>Clicks on the given party member's capsule.</summary>
-    protected void ClickPartyMember(MouseButton button, Character partyMember) =>
-        Click(button, partyMember.GlobalPosition + PartyMemberClickOffset);
+    /// <summary>Clicks on the given party member's capsule, optionally with shift held.</summary>
+    protected void ClickPartyMember(MouseButton button, Character partyMember, bool shift = false) =>
+        Click(button, partyMember.GlobalPosition + PartyMemberClickOffset, shift);
 
     protected void Expect(string name, bool ok)
     {

@@ -41,7 +41,8 @@ public partial class SelectionController : Node
             ? new ClickTarget.PartyMember(hit.PartyMemberId, hit.GlobalPosition.ToWorldPosition())
             : new ClickTarget.Ground(world.ToWorldPosition());
 
-        ClickResult result = _model.Click(new ClickEvent(button.Value, target) { PartyMemberPositions = Positions(partyMembers) });
+        ClickResult result = _model.Click(
+            new ClickEvent(button.Value, target, mouse.ShiftPressed) { PartyMemberPositions = Positions(partyMembers) });
         Apply(result, partyMembers);
         GetViewport().SetInputAsHandled();
     }

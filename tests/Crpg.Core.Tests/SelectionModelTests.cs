@@ -12,6 +12,9 @@ public class SelectionModelTests
     private static ClickEvent LeftClickOn(PartyMemberId partyMember) =>
         new(ClickButton.Left, new ClickTarget.PartyMember(partyMember, Somewhere));
 
+    private static ClickEvent ShiftClickOn(PartyMemberId partyMember) =>
+        new(ClickButton.Left, new ClickTarget.PartyMember(partyMember, Somewhere), Shift: true);
+
     private static ClickEvent RightClickOn(PartyMemberId partyMember, float x, float y) =>
         new(ClickButton.Right, new ClickTarget.PartyMember(partyMember, new WorldPosition(x, y)));
 
@@ -74,6 +77,45 @@ public class SelectionModelTests
         ClickResult result = model.Click(new ClickEvent(ClickButton.Left, new ClickTarget.Ground(new WorldPosition(100f, 50f))));
 
         Assert.Empty(result.Selection);
+        Assert.Empty(result.Orders);
+    }
+
+    [Fact]
+    public void Shift_click_on_an_unselected_party_member_adds_them_to_the_selection()
+    {
+        var model = new SelectionModel();
+        model.Click(LeftClickOn(Aldric));
+
+        ClickResult result = model.Click(ShiftClickOn(Brenna));
+
+        Assert.Equal(new[] { Aldric, Brenna }, result.Selection.OrderBy(id => id.Value));
+        Assert.Empty(result.Orders);
+    }
+
+    [Fact]
+    public void Shift_click_on_a_selected_party_member_removes_them_from_the_selection()
+    {
+        var model = new SelectionModel();
+        model.Click(LeftClickOn(Aldric));
+        model.Click(ShiftClickOn(Brenna));
+
+        ClickResult result = model.Click(ShiftClickOn(Aldric));
+
+        Assert.Equal(new[] { Brenna }, result.Selection);
+        Assert.Empty(result.Orders);
+    }
+
+    [Fact]
+    public void Shift_click_on_ground_leaves_the_selection_unchanged()
+    {
+        var model = new SelectionModel();
+        model.Click(LeftClickOn(Aldric));
+        model.Click(ShiftClickOn(Brenna));
+
+        ClickResult result = model.Click(
+            new ClickEvent(ClickButton.Left, new ClickTarget.Ground(new WorldPosition(100f, 50f)), Shift: true));
+
+        Assert.Equal(new[] { Aldric, Brenna }, result.Selection.OrderBy(id => id.Value));
         Assert.Empty(result.Orders);
     }
 

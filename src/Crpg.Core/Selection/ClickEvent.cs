@@ -19,8 +19,8 @@ public abstract record ClickTarget
     public sealed record Ground(WorldPosition Position) : ClickTarget;
 }
 
-/// <summary>One mouse click, already resolved to a target by the game side.</summary>
-public readonly record struct ClickEvent(ClickButton Button, ClickTarget Target)
+/// <summary>One mouse click, already resolved to a target by the game side, and whether shift was held.</summary>
+public readonly record struct ClickEvent(ClickButton Button, ClickTarget Target, bool Shift = false)
 {
     private static readonly IReadOnlyDictionary<PartyMemberId, WorldPosition> NobodyStanding =
         new Dictionary<PartyMemberId, WorldPosition>();

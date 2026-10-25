@@ -17,6 +17,7 @@ public sealed class SelectionModel
     /// <summary>Applies one click and returns the selection after it plus any orders it issued.</summary>
     public ClickResult Click(ClickEvent click) => click.Button switch
     {
+        ClickButton.Left when click.Shift => ShiftLeftClick(click.Target),
         ClickButton.Left => LeftClick(click.Target),
         ClickButton.Right => RightClick(click.Target),
         _ => CurrentResult(),
@@ -51,6 +52,21 @@ public sealed class SelectionModel
             ClickTarget.Ground => ImmutableHashSet<PartyMemberId>.Empty,
             _ => _selection,
         };
+        return CurrentResult();
+    }
+
+    /// <summary>
+    /// Shift+left-click on a party member toggles them in or out of the selection; on ground it changes nothing.
+    /// </summary>
+    private ClickResult ShiftLeftClick(ClickTarget target)
+    {
+        if (target is ClickTarget.PartyMember partyMember)
+        {
+            _selection = _selection.Contains(partyMember.Id)
+                ? _selection.Remove(partyMember.Id)
+                : _selection.Add(partyMember.Id);
+        }
+
         return CurrentResult();
     }
 
