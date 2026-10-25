@@ -1,0 +1,31 @@
+# Godot 4
+.godot/
+/android/
+*.translation
+
+# Godot export output
+/build/
+/export/
+*.pck
+*.exe
+*.apk
+*.aab
+*.x86_64
+*.zip
+
+# Mono / C# (in case it is used later)
+.mono/
+mono_crash.*.json
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
