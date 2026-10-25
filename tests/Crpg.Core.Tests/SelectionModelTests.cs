@@ -10,6 +10,9 @@ public class SelectionModelTests
     private static ClickEvent LeftClickOn(PartyMemberId partyMember) =>
         new(ClickButton.Left, new ClickTarget.PartyMember(partyMember));
 
+    private static ClickEvent RightClickOnGround(float x, float y) =>
+        new(ClickButton.Right, new ClickTarget.Ground(new WorldPosition(x, y)));
+
     [Fact]
     public void Left_click_on_a_party_member_selects_only_them()
     {
@@ -55,5 +58,53 @@ public class SelectionModelTests
 
         Assert.Empty(result.Selection);
         Assert.Empty(result.Orders);
+    }
+
+    [Fact]
+    public void Right_click_on_ground_with_a_selection_issues_a_move_order_to_the_clicked_position()
+    {
+        var model = new SelectionModel();
+        model.Click(LeftClickOn(Aldric));
+
+        ClickResult result = model.Click(RightClickOnGround(300f, 120f));
+
+        Assert.Equal(new Order[] { new MoveOrder(Aldric, new WorldPosition(300f, 120f)) }, result.Orders);
+    }
+
+    [Fact]
+    public void Right_click_on_ground_with_an_empty_selection_issues_no_orders()
+    {
+        var model = new SelectionModel();
+
+        ClickResult result = model.Click(RightClickOnGround(300f, 120f));
+
+        Assert.Empty(result.Selection);
+        Assert.Empty(result.Orders);
+    }
+
+    [Fact]
+    public void Right_click_does_not_change_the_selection()
+    {
+        var model = new SelectionModel();
+        model.Click(LeftClickOn(Aldric));
+
+        ClickResult onGround = model.Click(RightClickOnGround(300f, 120f));
+        ClickResult onPartyMember = model.Click(new ClickEvent(ClickButton.Right, new ClickTarget.PartyMember(Brenna)));
+
+        Assert.Equal(new[] { Aldric }, onGround.Selection);
+        Assert.Equal(new[] { Aldric }, onPartyMember.Selection);
+        Assert.Equal(new[] { Aldric }, model.Selection);
+    }
+
+    [Fact]
+    public void A_second_right_click_issues_a_new_move_order_to_the_new_position()
+    {
+        var model = new SelectionModel();
+        model.Click(LeftClickOn(Aldric));
+        model.Click(RightClickOnGround(300f, 120f));
+
+        ClickResult result = model.Click(RightClickOnGround(-40f, 500f));
+
+        Assert.Equal(new Order[] { new MoveOrder(Aldric, new WorldPosition(-40f, 500f)) }, result.Orders);
     }
 }

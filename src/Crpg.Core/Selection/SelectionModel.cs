@@ -18,8 +18,21 @@ public sealed class SelectionModel
     public ClickResult Click(ClickEvent click) => click.Button switch
     {
         ClickButton.Left => LeftClick(click.Target),
+        ClickButton.Right => RightClick(click.Target),
         _ => CurrentResult(),
     };
+
+    /// <summary>Right-click on ground sends every selected party member there; the selection is unchanged.</summary>
+    private ClickResult RightClick(ClickTarget target)
+    {
+        if (target is not ClickTarget.Ground ground)
+        {
+            return CurrentResult();
+        }
+
+        Order[] orders = _selection.Select(id => (Order)new MoveOrder(id, ground.Position)).ToArray();
+        return new ClickResult(_selection, orders);
+    }
 
     private ClickResult LeftClick(ClickTarget target)
     {
