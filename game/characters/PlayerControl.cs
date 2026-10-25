@@ -16,6 +16,9 @@ public partial class PlayerControl : Node
     /// <summary>The party member's identity in the selection model. M1 uses the Character's node name.</summary>
     public PartyMemberId PartyMemberId { get; private set; }
 
+    /// <summary>The character this component controls.</summary>
+    public Character Character => _character;
+
     /// <summary>Where the party member stands (their feet), in global coordinates.</summary>
     public Vector2 GlobalPosition => _character.GlobalPosition;
 

@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+using Crpg.Core.Combat;
 using Crpg.Core.Selection;
 using Godot;
 
@@ -5,12 +8,16 @@ namespace Crpg;
 
 /// <summary>
 /// Control component that makes its parent Character an enemy, the sibling type of <see cref="PlayerControl"/>. Its
-/// click area moves to the enemy click layer, so a right-click on its body orders the selection to attack it. It does
-/// not fight back yet; enemy target picking (#29) will live here.
+/// click area moves to the enemy click layer, so a right-click on its body orders the selection to attack it. Each
+/// physics frame it runs the Core enemy target pick and gives the character an attack order on the picked party
+/// member, so the enemy fights with the same move-into-range and attack-cooldown behaviour as party members.
 /// </summary>
 public partial class AiControl : Node
 {
     public const string EnemiesGroup = "enemies";
+
+    /// <summary>The awareness radius used when the character's stats are not a <see cref="Data.MonsterData"/>.</summary>
+    private const int DefaultAwarenessRadiusTiles = 8;
 
     private Character _character = null!;
 
@@ -19,6 +26,10 @@ public partial class AiControl : Node
 
     /// <summary>The character this component controls.</summary>
     public Character Character => _character;
+
+    /// <summary>How far, in tiles, this enemy notices a party member: from its MonsterData.</summary>
+    public int AwarenessRadiusTiles =>
+        _character.CharacterStats is Data.MonsterData monster ? monster.AwarenessRadiusTiles : DefaultAwarenessRadiusTiles;
 
     public override void _EnterTree()
     {
@@ -30,4 +41,30 @@ public partial class AiControl : Node
 
     /// <summary>True if the area is this enemy's click area.</summary>
     public bool OwnsClickArea(Area2D area) => area.GetParent() == _character;
+
+    // Physics processing obeys ProcessMode, so pausing the tree (PauseManager) freezes enemy AI too.
+    public override void _PhysicsProcess(double delta)
+    {
+        if (_character.IsDead)
+        {
+            return;
+        }
+
+        List<PlayerControl> partyMembers = GetTree().GetNodesInGroup(PlayerControl.PartyMembersGroup)
+            .OfType<PlayerControl>().ToList();
+
+        // Down party members arrive with #30; until then a party member at 0 HP is still a target.
+        TargetCandidate[] candidates = partyMembers
+            .Select(control => new TargetCandidate(control.PartyMemberId, control.GlobalPosition.ToWorldPosition(),
+                IsDown: false))
+            .ToArray();
+        PartyMemberId? current = partyMembers.FirstOrDefault(control => control.Character == _character.AttackTarget)
+            ?.PartyMemberId;
+        PartyMemberId? pick = CombatRules.PickEnemyTarget(_character.GlobalPosition.ToWorldPosition(),
+            AwarenessRadiusTiles, current, candidates);
+
+        if (pick != current && partyMembers.FirstOrDefault(control => control.PartyMemberId == pick) is { } picked)
+        {
+            _character.Attack(picked.Character);        }
+    }
 }
