@@ -19,7 +19,8 @@ public partial class Main : Node2D
 
     /// <summary>
     /// Loads a zone into ZoneContainer and reparents the party members into it. A Party node holding more than
-    /// <see cref="Core.Party.Cap"/> party members is an authoring error.
+    /// <see cref="Core.Party.Cap"/> party members is an authoring error: the game stops taking input and quits with
+    /// exit code 1, so no move order can ever ask for more spread slots than there are.
     /// </summary>
     private Node2D LoadZone(string path)
     {
@@ -28,7 +29,11 @@ public partial class Main : Node2D
         Godot.Collections.Array<Node> party = GetNode("Party").GetChildren();
         if (party.Count > Core.Party.Cap)
         {
-            GD.PushError($"Main: the Party node holds {party.Count} party members, more than the cap of {Core.Party.Cap}");
+            GD.PushError($"Main: the Party node holds {party.Count} party members, more than the cap of "
+                         + $"{Core.Party.Cap}. Quitting.");
+            GetNode("SelectionController").ProcessMode = ProcessModeEnum.Disabled;
+            GetTree().Quit(1);
+            return zone;
         }
 
         foreach (Node partyMember in party)

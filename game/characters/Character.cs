@@ -10,11 +10,10 @@ namespace Crpg;
 public partial class Character : CharacterBody2D
 {
     /// <summary>
-    /// Length of one tile in world pixels, for movement speed. A "tile" here is one isometric grid step
-    /// (tile (x, y) to (x + 1, y)): half the tile size, (32, 16) on a 64x32 tile, about 35.78 px. Characters move
-    /// at the same pixel speed in every direction.
+    /// Length of one tile in world pixels, for movement speed: one isometric grid step,
+    /// <see cref="Core.TileScale.GridStepLength"/>. Characters move at the same pixel speed in every direction.
     /// </summary>
-    public static readonly float TileLength = ((Vector2)Tile.Size / 2).Length();
+    public static float TileLength => Core.TileScale.GridStepLength;
 
     /// <summary>The character scene; the source of the feet radius for tools that bake navigation.</summary>
     public const string ScenePath = "res://characters/Character.tscn";

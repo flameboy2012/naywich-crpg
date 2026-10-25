@@ -1,16 +1,17 @@
 namespace Crpg.Core.Selection;
 
 /// <summary>
-/// Gives each party member in a group move their own spread slot around the clicked point, so they don't stack.
+/// Gives each party member in a move order to several party members their own spread slot around the clicked point,
+/// so they don't stack.
 /// The pattern is fixed and world-aligned: it never turns with the direction of the move.
 /// </summary>
 public static class SpreadSlots
 {
     /// <summary>
-    /// Distance in world pixels from the clicked point to every other slot. About one tile: one isometric grid step,
-    /// (32, 16), about 35.78 px (ADR 0001). Tunable.
+    /// Distance in world pixels from the clicked point to every other slot: one tile, that is one isometric grid step
+    /// (<see cref="TileScale.GridStepLength"/>, ADR 0001).
     /// </summary>
-    public const float Spacing = 35.78f;
+    public static float Spacing => TileScale.GridStepLength;
 
     /// <summary>
     /// Directions from the clicked point to slots 1 onwards, as unit vectors in world space (y points down the screen):
@@ -23,7 +24,10 @@ public static class SpreadSlots
         (-0.8660254f, 0.5f),
     };
 
-    /// <summary>The most party members one group move can spread out: slot 0 plus one per direction.</summary>
+    /// <summary>
+    /// The most party members one move order can spread out: slot 0 plus one per direction. Must equal
+    /// <see cref="Party.Cap"/>, so a full selection always fits (a Core test holds the two together).
+    /// </summary>
     public static int Count => Directions.Length + 1;
 
     /// <summary>
@@ -42,7 +46,7 @@ public static class SpreadSlots
         if (ordered.Length > Count)
         {
             throw new InvalidOperationException(
-                $"A group move can spread out at most {Count} party members, not {ordered.Length}.");
+                $"A move order can spread out at most {Count} party members, not {ordered.Length}.");
         }
 
         WorldPosition[] slots = Enumerable.Range(0, ordered.Length).Select(slot => Slot(clicked, slot)).ToArray();
@@ -57,7 +61,7 @@ public static class SpreadSlots
             float total = 0f;
             for (int i = 0; i < assignment.Length; i++)
             {
-                total += Distance(from[i], slots[assignment[i]]);
+                total += from[i].DistanceTo(slots[assignment[i]]);
             }
 
             if (total < bestTotal)
@@ -86,13 +90,6 @@ public static class SpreadSlots
                 yield return rest.Select(slot => slot >= first ? slot + 1 : slot).Prepend(first).ToArray();
             }
         }
-    }
-
-    private static float Distance(WorldPosition a, WorldPosition b)
-    {
-        float dx = a.X - b.X;
-        float dy = a.Y - b.Y;
-        return MathF.Sqrt(dx * dx + dy * dy);
     }
 
     private static WorldPosition Slot(WorldPosition clicked, int slot)
