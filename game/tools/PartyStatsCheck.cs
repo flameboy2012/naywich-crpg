@@ -8,7 +8,7 @@ namespace Crpg.Tools;
 /// <summary>
 /// Headless check for party stats and the combat log: loads Main with a fixed seed and checks that the party members,
 /// in portrait slot order, are the spec's fighter, cleric, rogue and wizard with their derived AC, HP and attacks, that
-/// each shows a full HP bar, and that the combat log panel sits in the bottom-left corner with the seed as its first
+/// each shows a full HP bar, and that the combat log panel sits in the bottom-right corner with the seed as its first
 /// line. Last, a new fight (as a defeat restart starts) keeps the seed, rolls with a new RNG and clears the log down
 /// to the seed line. Run from game/ after dotnet build, with the seed:
 ///   godot --headless --path . --fixed-fps 60 --quit-after 120 --script res://tools/PartyStatsCheck.cs --seed 4242
@@ -65,8 +65,9 @@ public partial class PartyStatsCheck : HeadlessCheck
             panel.ShownLines.FirstOrDefault() == $"Seed: {ExpectedSeed}");
         Rect2 rect = panel.GetGlobalRect();
         Vector2 viewport = Root.GetVisibleRect().Size;
-        Expect($"the combat log panel sits in the bottom-left corner (rect {rect}, viewport {viewport})",
-            rect.Position.X < viewport.X / 4 && rect.End.Y > viewport.Y * 3 / 4 && rect.End.Y <= viewport.Y
+        Expect($"the combat log panel sits in the bottom-right corner (rect {rect}, viewport {viewport})",
+            rect.End.X > viewport.X * 3 / 4 && rect.End.X <= viewport.X
+            && rect.End.Y > viewport.Y * 3 / 4 && rect.End.Y <= viewport.Y
             && rect.Size.Y > 0);
 
         // A defeat restart starts a new fight: the log holds only the seed line again, and --seed still applies.

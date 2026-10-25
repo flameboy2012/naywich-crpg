@@ -4,12 +4,12 @@ using Godot;
 namespace Crpg;
 
 /// <summary>
-/// The combat log in the bottom-left corner: the last lines of the <see cref="Rules"/> combat log, newest at the
+/// The combat log in the bottom-right corner: the last lines of the <see cref="Rules"/> combat log, newest at the
 /// bottom. Clicks pass through it to the world.
 /// </summary>
 public partial class CombatLogPanel : PanelContainer
 {
-    /// <summary>How far (px) the panel sits from the window's bottom and left edges.</summary>
+    /// <summary>How far (px) the panel sits from the window's bottom and right edges.</summary>
     [Export]
     public float Inset { get; set; } = 16f;
 
@@ -34,11 +34,12 @@ public partial class CombatLogPanel : PanelContainer
         _text.AddThemeFontSizeOverride("font_size", 16);
         AddChild(_text);
 
-        // Anchored to the bottom-left corner, growing upwards as lines are added.
-        SetAnchorsPreset(LayoutPreset.BottomLeft);
+        // Anchored to the bottom-right corner, growing upwards as lines are added.
+        SetAnchorsPreset(LayoutPreset.BottomRight);
+        GrowHorizontal = GrowDirection.Begin;
         GrowVertical = GrowDirection.Begin;
-        OffsetLeft = Inset;
-        OffsetRight = Inset + Width;
+        OffsetLeft = -Inset - Width;
+        OffsetRight = -Inset;
         OffsetBottom = -Inset;
         OffsetTop = -Inset;
 
