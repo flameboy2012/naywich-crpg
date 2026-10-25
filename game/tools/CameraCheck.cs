@@ -149,8 +149,58 @@ public partial class CameraCheck : HeadlessCheck
             true);
         HoldKey(Key.Left, false);
         EndDrag(boxFrom + new Vector2(120, 80));
+        yield return SettleFrames;
+
+        // A middle-mouse drag keeps panning while the mouse crosses the portrait column.
+        Vector2 overPortrait = Root.GetNode("Main/UI/PortraitColumn").GetChildren().OfType<Portrait>().ElementAt(1)
+            .GetGlobalRect().GetCenter();
+        Vector2 worldPoint = new(300, 200);
+        before = rig.GlobalPosition;
+        PushMouseButton(MouseButton.Middle, true, worldPoint, MouseButtonMask.Middle);
+        PushMouseMotion(worldPoint, overPortrait, MouseButtonMask.Middle);
         yield return 1;
+        dragged = rig.GlobalPosition - before;
+        GD.Print($"middle-mouse drag onto a portrait moved the camera {dragged}");
+        Expect("a middle-mouse drag keeps panning over the portrait column",
+            dragged.DistanceTo(worldPoint - overPortrait) < PositionTolerance);
+
+        // Releasing the middle button over a portrait ends the drag: moving the mouse afterwards doesn't pan.
+        PushMouseButton(MouseButton.Middle, false, overPortrait, 0);
+        yield return 1;
+        before = rig.GlobalPosition;
+        PushMouseMotion(overPortrait, worldPoint, 0);
+        yield return 1;
+        Expect("a middle-mouse drag released over a portrait ends there",
+            rig.GlobalPosition.DistanceTo(before) < PositionTolerance);
+
+        // A box select released over a portrait ends there: the box goes and panning works again.
+        var selection = Root.GetNode<SelectionController>("Main/SelectionController");
+        PushMouseButton(MouseButton.Left, true, worldPoint, MouseButtonMask.Left);
+        Vector2 besideColumn = overPortrait + new Vector2(100, 0);
+        PushMouseMotion(worldPoint, besideColumn, MouseButtonMask.Left);
+        PushMouseMotion(besideColumn, overPortrait, MouseButtonMask.Left);
+        yield return 1;
+        Expect("the box select follows the mouse onto the portrait column",
+            selection.BoxVisible && selection.BoxRect.HasPoint(overPortrait + new Vector2(1, 0)));
+        PushMouseButton(MouseButton.Left, false, overPortrait, 0);
+        yield return 1;
+        Expect("a box select released over a portrait ends there", !selection.BoxVisible);
+        before = rig.GlobalPosition;
+        HoldKey(Key.Right, true);
+        yield return ShortPanFrames;
+        HoldKey(Key.Right, false);
+        yield return SettleFrames;
+        Expect("keyboard pan works after a box select released over a portrait",
+            rig.GlobalPosition.X - before.X > PositionTolerance);
     }
+
+    private void PushMouseButton(MouseButton button, bool pressed, Vector2 at, MouseButtonMask mask) =>
+        Root.PushInput(
+            new InputEventMouseButton { ButtonIndex = button, Pressed = pressed, Position = at, ButtonMask = mask },
+            true);
+
+    private void PushMouseMotion(Vector2 from, Vector2 to, MouseButtonMask mask) =>
+        Root.PushInput(new InputEventMouseMotion { Position = to, Relative = to - from, ButtonMask = mask }, true);
 
     /// <summary>
     /// Presses or releases a key through Input, so held-key state updates as for a real key, optionally with Ctrl

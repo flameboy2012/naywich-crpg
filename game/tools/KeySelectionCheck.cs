@@ -74,6 +74,10 @@ public partial class KeySelectionCheck : HeadlessCheck
         Expect("shift+1 removes the selected party member in slot 1", RingsShow(third));
         Expect("shift+1 leaves only portrait 3 highlighted", PortraitsShow(third));
 
+        PressKey(Key.Key2, ctrl: true);
+        yield return 1;
+        Expect("Ctrl+2 doesn't select by slot", RingsShow(third) && PortraitsShow(third));
+
         Transform2D canvasBefore = Root.GetCanvasTransform();
         PressKey(Key.A, ctrl: true);
         yield return NoMoveFrames;

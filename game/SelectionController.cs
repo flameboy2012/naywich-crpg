@@ -51,6 +51,9 @@ public partial class SelectionController : Node
     /// <summary>True while the box select rectangle is drawn on screen.</summary>
     public bool BoxVisible => _box.Visible;
 
+    /// <summary>The box select rectangle (screen px), while it is visible.</summary>
+    public Rect2 BoxRect => _box.GetRect();
+
     /// <summary>The party members in portrait slot order: the first is slot 1. Set in _Ready.</summary>
     public IReadOnlyList<PlayerControl> PortraitSlots { get; private set; } = [];
 
@@ -98,6 +101,28 @@ public partial class SelectionController : Node
     /// <summary>Selects every party member.</summary>
     public void SelectAll() => Apply(_model.SelectAll(), PartyMembers());
 
+    /// <summary>
+    /// Once a left press in the world has started a possible drag, its motion and release are taken here, before the
+    /// UI, so the box follows the mouse over the portrait column and a release anywhere ends it.
+    /// </summary>
+    public override void _Input(InputEvent @event)
+    {
+        if (_pressedAt is not { } pressedAt)
+        {
+            return;
+        }
+
+        switch (@event)
+        {
+            case InputEventMouseButton { ButtonIndex: GodotMouseButton.Left, Pressed: false } left:
+                OnLeftRelease(pressedAt, left);
+                break;
+            case InputEventMouseMotion motion:
+                OnDrag(pressedAt, motion.Position);
+                break;
+        }
+    }
+
     public override void _UnhandledInput(InputEvent @event)
     {
         if (@event is InputEventKey { Pressed: true, Echo: false } key)
@@ -108,11 +133,10 @@ public partial class SelectionController : Node
 
         switch (@event)
         {
-            case InputEventMouseButton { ButtonIndex: GodotMouseButton.Left } left:
-                OnLeftButton(left);
-                break;
-            case InputEventMouseMotion motion when _pressedAt is { } pressedAt:
-                OnDrag(pressedAt, motion.Position);
+            case InputEventMouseButton { ButtonIndex: GodotMouseButton.Left, Pressed: true } left:
+                _pressedAt = left.Position;
+                _dragging = false;
+                GetViewport().SetInputAsHandled();
                 break;
             case InputEventMouseButton { ButtonIndex: GodotMouseButton.Right, Pressed: true } right:
                 Click(ClickButton.Right, right.Position, right.ShiftPressed);
@@ -121,13 +145,21 @@ public partial class SelectionController : Node
         }
     }
 
-    /// <summary>Number keys select by portrait slot, shift+number toggles a slot, and Ctrl+A selects the whole party.</summary>
+    /// <summary>
+    /// Number keys select by portrait slot, shift+number toggles a slot, and Ctrl+A selects the whole party. A number
+    /// key with Ctrl, Alt or Meta held selects nothing.
+    /// </summary>
     private void OnKey(InputEventKey key)
     {
         if (key.IsActionPressed("select_all"))
         {
             SelectAll();
             GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        if (key.CtrlPressed || key.AltPressed || key.MetaPressed)
+        {
             return;
         }
 
@@ -142,22 +174,9 @@ public partial class SelectionController : Node
         }
     }
 
-    /// <summary>A left press starts a possible drag; the release decides whether it was a click or a box select.</summary>
-    private void OnLeftButton(InputEventMouseButton left)
+    /// <summary>The release after a left press in the world decides whether it was a click or a box select.</summary>
+    private void OnLeftRelease(Vector2 pressedAt, InputEventMouseButton left)
     {
-        if (left.Pressed)
-        {
-            _pressedAt = left.Position;
-            _dragging = false;
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (_pressedAt is not { } pressedAt)
-        {
-            return;
-        }
-
         OnDrag(pressedAt, left.Position);
         if (_dragging)
         {

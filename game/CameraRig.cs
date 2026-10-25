@@ -27,7 +27,7 @@ public partial class CameraRig : Node2D
 
     /// <summary>The selection controller, asked whether a box select is being dragged: all panning is off then.</summary>
     [Export]
-    public SelectionController Selection { get; set; } = null!;
+    public SelectionController SelectionController { get; set; } = null!;
 
     private ZoneBounds _bounds;
 
@@ -61,7 +61,7 @@ public partial class CameraRig : Node2D
     /// <summary>Keyboard pan and edge pan, combined, at the pan speed.</summary>
     public override void _Process(double delta)
     {
-        if (Selection.BoxVisible)
+        if (SelectionController.BoxVisible)
         {
             return;
         }
@@ -73,19 +73,38 @@ public partial class CameraRig : Node2D
         }
     }
 
-    /// <summary>Middle-mouse drag moves the camera against the mouse, so the ground stays under the cursor.</summary>
-    public override void _UnhandledInput(InputEvent @event)
+    /// <summary>
+    /// Once a middle press in the world has started a middle-mouse drag, its motion and release are taken here, before
+    /// the UI, so the pan carries on over the portrait column and a release anywhere ends it. The drag moves the camera
+    /// against the mouse, so the ground stays under the cursor.
+    /// </summary>
+    public override void _Input(InputEvent @event)
     {
+        if (!_middleDragging)
+        {
+            return;
+        }
+
         switch (@event)
         {
-            case InputEventMouseButton { ButtonIndex: MouseButton.Middle } middle:
-                _middleDragging = middle.Pressed;
+            case InputEventMouseButton { ButtonIndex: MouseButton.Middle, Pressed: false }:
+                _middleDragging = false;
                 GetViewport().SetInputAsHandled();
                 break;
-            case InputEventMouseMotion motion when _middleDragging && !Selection.BoxVisible:
+            case InputEventMouseMotion motion when !SelectionController.BoxVisible:
                 // There is no zoom, so a screen pixel is a world pixel.
                 CentreOn(GlobalPosition - motion.Relative);
                 break;
+        }
+    }
+
+    /// <summary>A middle press in the world starts a middle-mouse drag.</summary>
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Middle, Pressed: true })
+        {
+            _middleDragging = true;
+            GetViewport().SetInputAsHandled();
         }
     }
 
