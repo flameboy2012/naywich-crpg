@@ -70,8 +70,8 @@ public partial class Character : CharacterBody2D
     public float FeetRadius => ((CircleShape2D)GetNode<CollisionShape2D>("CollisionShape2D").Shape).Radius;
 
     /// <summary>
-    /// Movement speed in tiles per second at normal combat speed. 5e 30 ft per 6-second round = 1 tile per second (ADR 0001).
-    /// Set from <see cref="CharacterStats"/> on ready; tune the speed there.
+    /// Movement speed in tiles per second at normal combat speed. 5e 30 ft per 6-second round = 1 tile per second
+    /// (ADR 0001). Set from <see cref="CharacterStats"/> on ready; tune the speed there.
     /// </summary>
     [Export(PropertyHint.Range, "0.1,10,0.05,or_greater")]
     public float SpeedTilesPerSecond { get; set; } = 1f;
@@ -135,7 +135,9 @@ public partial class Character : CharacterBody2D
 
     public int MaxHp => Stats.MaxHp;
 
-    /// <summary>True for an enemy at 0 HP: its grey body stays where it fell, can't be clicked and takes no part.</summary>
+    /// <summary>
+    /// True for an enemy at 0 HP: its grey body stays where it fell, can't be clicked and takes no part.
+    /// </summary>
     public bool IsDead { get; private set; }
 
     /// <summary>
@@ -165,7 +167,9 @@ public partial class Character : CharacterBody2D
     /// <summary>True while the character's click area can be clicked: never for a dead enemy.</summary>
     public bool Clickable => _clickArea.CollisionLayer != 0;
 
-    /// <summary>The middle of the body's click area, in global coordinates: where a click hits it, standing or lying.</summary>
+    /// <summary>
+    /// The middle of the body's click area, in global coordinates: where a click hits it, standing or lying.
+    /// </summary>
     public Vector2 BodyCentre => _clickArea.GetNode<Node2D>("CollisionShape2D").GlobalPosition;
 
     public override void _Ready()
@@ -202,7 +206,9 @@ public partial class Character : CharacterBody2D
         _agent.VelocityComputed += OnVelocityComputed;
     }
 
-    /// <summary>True while the navigation agent steers around other characters. Bodies never collide with each other.</summary>
+    /// <summary>
+    /// True while the navigation agent steers around other characters. Bodies never collide with each other.
+    /// </summary>
     public bool AvoidanceEnabled => _agent.AvoidanceEnabled;
 
     /// <summary>Shows or hides the ring under the character's feet.</summary>

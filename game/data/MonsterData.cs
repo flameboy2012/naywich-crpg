@@ -11,7 +11,8 @@ namespace Crpg.Data;
 public partial class MonsterData : CharacterStats
 {
     /// <summary>
-    /// How far, in tiles, the monster notices an enemy. Defaults to <see cref="CombatRules.DefaultAwarenessRadiusTiles"/>.
+    /// How far, in tiles, the monster notices an enemy. Defaults to
+    /// <see cref="CombatRules.DefaultAwarenessRadiusTiles"/>.
     /// </summary>
     [Export(PropertyHint.Range, "1,40,1,or_greater")]
     public int AwarenessRadiusTiles { get; set; } = CombatRules.DefaultAwarenessRadiusTiles;

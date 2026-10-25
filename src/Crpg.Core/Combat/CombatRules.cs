@@ -11,7 +11,9 @@ public sealed class CombatRules(IDiceRoller dice)
     public const int NaturalTwenty = 20;
     public const int NaturalOne = 1;
 
-    /// <summary>The default global combat speed (ADR 0003): attack cooldowns and movement run in plain real seconds.</summary>
+    /// <summary>
+    /// The default global combat speed (ADR 0003): attack cooldowns and movement run in plain real seconds.
+    /// </summary>
     public const float NormalCombatSpeed = 1f;
 
     /// <summary>
@@ -92,7 +94,9 @@ public sealed class CombatRules(IDiceRoller dice)
         return enemies.Any(enemy => !enemy.IsDead && enemy.IsAware) ? CombatState.Fighting : CombatState.Ended;
     }
 
-    /// <summary>A party member's HP after combat end: a downed party member (0 HP) gets up at 1 HP; others keep theirs.</summary>
+    /// <summary>
+    /// A party member's HP after combat end: a downed party member (0 HP) gets up at 1 HP; others keep theirs.
+    /// </summary>
     public static int HpAtCombatEnd(int hp) => hp > 0 ? hp : GetUpHp;
 
     /// <summary>Rolls the dice and sums them.</summary>

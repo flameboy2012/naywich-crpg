@@ -12,7 +12,9 @@ namespace Crpg;
 /// </summary>
 public partial class PortraitColumn : VBoxContainer
 {
-    /// <summary>How far (px) the column sits from the window's top and left edges, so edge pan to the left still works.</summary>
+    /// <summary>
+    /// How far (px) the column sits from the window's top and left edges, so edge pan to the left still works.
+    /// </summary>
     [Export]
     public float Inset { get; set; } = 16f;
 

@@ -35,14 +35,18 @@ public abstract partial class HeadlessCheck : SceneTree
 
     private const string ZonePath = "Main/ZoneContainer/TestZone";
 
-    /// <summary>Where to click, relative to the party member's feet, to hit them: the middle of the capsule sprite.</summary>
+    /// <summary>
+    /// Where to click, relative to the party member's feet, to hit them: the middle of the capsule sprite.
+    /// </summary>
     protected static readonly Vector2 PartyMemberClickOffset = new(0, -24);
 
     private IEnumerator<int> _steps = null!;
     private int _wait;
     private bool _failed;
 
-    /// <summary>Every party member in the zone, in spawn order (PartyMember1 first). Set before the first step runs.</summary>
+    /// <summary>
+    /// Every party member in the zone, in spawn order (PartyMember1 first). Set before the first step runs.
+    /// </summary>
     protected IReadOnlyList<Character> PartyMembers { get; private set; } = null!;
 
     /// <summary>The first party member: the one single-character checks drive.</summary>
@@ -54,7 +58,9 @@ public abstract partial class HeadlessCheck : SceneTree
     /// <summary>The zone's ground layer.</summary>
     protected TileMapLayer Ground => Root.GetNode<TileMapLayer>(ZonePath + "/NavigationRegion2D/Ground");
 
-    /// <summary>The world rectangle the camera shows: the viewport's visible rect seen through the canvas transform.</summary>
+    /// <summary>
+    /// The world rectangle the camera shows: the viewport's visible rect seen through the canvas transform.
+    /// </summary>
     protected Rect2 VisibleWorldRect() => Root.GetCanvasTransform().AffineInverse() * Root.GetVisibleRect();
 
     /// <summary>The navigation map the zone's region is on.</summary>
@@ -92,12 +98,16 @@ public abstract partial class HeadlessCheck : SceneTree
     /// <summary>The check, as steps. Each yield is the number of physics frames to wait before the next step.</summary>
     protected abstract IEnumerator<int> Run();
 
-    /// <summary>Called on every physics frame, before the step runner; for checks that track something throughout.</summary>
+    /// <summary>
+    /// Called on every physics frame, before the step runner; for checks that track something throughout.
+    /// </summary>
     protected virtual void EachPhysicsFrame()
     {
     }
 
-    /// <summary>Presses and releases a mouse button at a world point, through the viewport, optionally with shift held.</summary>
+    /// <summary>
+    /// Presses and releases a mouse button at a world point, through the viewport, optionally with shift held.
+    /// </summary>
     protected void Click(MouseButton button, Vector2 world, bool shift = false)
     {
         Vector2 screen = Root.GetCanvasTransform() * world;
@@ -168,7 +178,9 @@ public abstract partial class HeadlessCheck : SceneTree
         }
     }
 
-    /// <summary>Steps that select the whole party: a click on the first party member, then shift-clicks on the rest.</summary>
+    /// <summary>
+    /// Steps that select the whole party: a click on the first party member, then shift-clicks on the rest.
+    /// </summary>
     protected IEnumerable<int> SelectWholeParty()
     {
         ClickPartyMember(MouseButton.Left, PartyMembers[0]);

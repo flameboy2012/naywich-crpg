@@ -7,7 +7,8 @@ namespace Crpg;
 
 /// <summary>
 /// A placeholder portrait for one party member: a panel in their tint showing their portrait slot number, with a
-/// bright border while they are in the selection, greyed out while they are down. Consumes every mouse button on it, so none reaches the world.
+/// bright border while they are in the selection, greyed out while they are down. Consumes every mouse button on it, so
+/// none reaches the world.
 /// </summary>
 public partial class Portrait : Panel
 {

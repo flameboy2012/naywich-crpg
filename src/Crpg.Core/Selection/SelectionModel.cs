@@ -64,7 +64,9 @@ public sealed class SelectionModel
         return new ClickResult(_selection, orders);
     }
 
-    /// <summary>Left-click on a party member who is up selects only them; on a downed party member it changes nothing.</summary>
+    /// <summary>
+    /// Left-click on a party member who is up selects only them; on a downed party member it changes nothing.
+    /// </summary>
     private ClickResult LeftClick(ClickTarget target)
     {
         _selection = target switch

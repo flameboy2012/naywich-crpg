@@ -113,7 +113,9 @@ public partial class SelectionController : Node
         }
     }
 
-    /// <summary>Tells the model a party member went down (they leave the selection) or got up (selectable again).</summary>
+    /// <summary>
+    /// Tells the model a party member went down (they leave the selection) or got up (selectable again).
+    /// </summary>
     private void OnDownChanged(Character character)
     {
         PlayerControl partyMember = PortraitSlots.First(slot => slot.Character == character);

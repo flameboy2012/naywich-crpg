@@ -62,7 +62,9 @@ public partial class CombatCheck : HeadlessCheck
         @"^(?<attacker>Rogue|Wizard) → Goblin 2: \d+\+4=\d+ vs AC 15 (hit|miss|nat 20 crit|nat 1 miss)"
         + @"(, (?<damage>\d+d\d+(\+\d+)?=\d+ \w+))? \(Goblin 2: \d+/7(, dead)?\)$");
 
-    /// <summary>Where Goblin 2 walks to: out of both the rogue's and the wizard's range, past the block at (36, 28).</summary>
+    /// <summary>
+    /// Where Goblin 2 walks to: out of both the rogue's and the wizard's range, past the block at (36, 28).
+    /// </summary>
     private static readonly Vector2I FleeTile = new(44, 30);
 
     /// <summary>How long the check waits for Goblin 2 to finish walking away.</summary>
@@ -73,10 +75,14 @@ public partial class CombatCheck : HeadlessCheck
         @"^Goblin [34] → Fighter: \d+\+4=\d+ vs AC 16 (hit|miss|nat 20 crit|nat 1 miss)"
         + @"(, \d+d6\+2=\d+ (slashing|piercing))? \(Fighter: (?<hp>\d+)/12(, down)?\)$");
 
-    /// <summary>How long the goblins are watched standing idle once their AI is on and the party is out of reach.</summary>
+    /// <summary>
+    /// How long the goblins are watched standing idle once their AI is on and the party is out of reach.
+    /// </summary>
     private const int IdleFrames = 60;
 
-    /// <summary>How far short of Goblin 3, in tiles, the fighter's move order ends: inside both goblins' radius.</summary>
+    /// <summary>
+    /// How far short of Goblin 3, in tiles, the fighter's move order ends: inside both goblins' radius.
+    /// </summary>
     private const float StopShortTiles = 5f;
 
     /// <summary>
@@ -324,7 +330,9 @@ public partial class CombatCheck : HeadlessCheck
         }
     }
 
-    /// <summary>Four goblins, two scimitar and two shortbow, in one cluster about 15 tiles from the party start.</summary>
+    /// <summary>
+    /// Four goblins, two scimitar and two shortbow, in one cluster about 15 tiles from the party start.
+    /// </summary>
     private void CheckCluster()
     {
         List<Character> goblins = Goblins.ToList();
@@ -671,7 +679,9 @@ public partial class CombatCheck : HeadlessCheck
 
     private float RangedDistance(Character attacker) => attacker.GlobalPosition.DistanceTo(_rangedGoblin.GlobalPosition);
 
-    /// <summary>The farthest the attacker's feet may be from Goblin 2's to attack: range in tiles plus both feet radii.</summary>
+    /// <summary>
+    /// The farthest the attacker's feet may be from Goblin 2's to attack: range in tiles plus both feet radii.
+    /// </summary>
     private float RangeEdge(Character attacker) =>
         CombatRules.MaxAttackDistance(attacker.Stats.Attack.RangeTiles, attacker.FeetRadius, _rangedGoblin.FeetRadius);
 
@@ -685,7 +695,9 @@ public partial class CombatCheck : HeadlessCheck
     private RangedAttack? AttackAfter(string attacker, int frame) =>
         RangedAttacksBy(attacker).FirstOrDefault(attack => attack.Frame > frame);
 
-    /// <summary>An attack made standing still, inside range, and less than half a tile short of it: stopped at range.</summary>
+    /// <summary>
+    /// An attack made standing still, inside range, and less than half a tile short of it: stopped at range.
+    /// </summary>
     private void ExpectAttackAtRange(string attacker, RangedAttack? attack, string what)
     {
         Character character = attacker == "Rogue" ? Rogue : Wizard;

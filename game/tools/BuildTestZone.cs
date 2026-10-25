@@ -5,8 +5,8 @@ namespace Crpg.Tools;
 
 /// <summary>
 /// Builds the isometric test zone: res://zones/test_tiles.tres (TileSet) and res://zones/TestZone.tscn, with
-/// obstacle tiles and a NavigationRegion2D baked from the ground tiles, with holes at the obstacles. Needs res://art/tiles.png imported first (see GenArt).
-/// Run from game/ after dotnet build:
+/// obstacle tiles and a NavigationRegion2D baked from the ground tiles, with holes at the obstacles. Needs
+/// res://art/tiles.png imported first (see GenArt). Run from game/ after dotnet build:
 ///   godot --headless --path . --quit-after 60 --script res://tools/BuildTestZone.cs
 /// The output is committed; rerun this only to change the zone layout or navigation.
 /// </summary>

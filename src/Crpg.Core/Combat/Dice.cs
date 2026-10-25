@@ -6,7 +6,9 @@ namespace Crpg.Core.Combat;
 /// <summary>A number of dice of one size, written "1d8" or "2d6". Modifiers are not part of the dice.</summary>
 public readonly partial record struct Dice(int Count, int Sides)
 {
-    /// <summary>Parses "NdS" (case and surrounding spaces ignored). Throws <see cref="FormatException"/> otherwise.</summary>
+    /// <summary>
+    /// Parses "NdS" (case and surrounding spaces ignored). Throws <see cref="FormatException"/> otherwise.
+    /// </summary>
     public static Dice Parse(string text)
     {
         Match match = DicePattern().Match(text.Trim());

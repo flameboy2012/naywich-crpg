@@ -6,7 +6,9 @@ namespace Crpg.Core.Combat;
 /// </summary>
 public sealed class AttackCooldown
 {
-    /// <summary>One 5e round in real seconds at normal combat speed. The one place the attack cooldown length lives.</summary>
+    /// <summary>
+    /// One 5e round in real seconds at normal combat speed. The one place the attack cooldown length lives.
+    /// </summary>
     public const float Seconds = 6f;
 
     /// <summary>Slack for float rounding, so 60 frames of 0.1 s count as a full 6 s.</summary>
@@ -20,7 +22,9 @@ public sealed class AttackCooldown
     /// <summary>Seconds of cooldown left at normal combat speed; 0 when ready.</summary>
     public float Remaining => Math.Max(0f, _remaining);
 
-    /// <summary>Counts down by real seconds scaled by combat speed. Stopping the calls (pause) stops the countdown.</summary>
+    /// <summary>
+    /// Counts down by real seconds scaled by combat speed. Stopping the calls (pause) stops the countdown.
+    /// </summary>
     public void Tick(float realSeconds, float combatSpeed)
     {
         _remaining = Math.Max(0f, _remaining - realSeconds * combatSpeed);
