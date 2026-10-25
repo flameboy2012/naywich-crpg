@@ -18,6 +18,9 @@ public sealed record Stats(
     /// <summary>The 5e speed that moves one tile per real second (ADR 0001, ADR 0003).</summary>
     private const float FeetPerTilePerSecond = 30f;
 
+    /// <summary>The 5e base armour class with no armour, before the DEX modifier.</summary>
+    public const int UnarmoredBaseArmorClass = 10;
+
     /// <summary>Movement speed in tiles per real second at normal combat speed: 30 ft is 1 tile per second.</summary>
     public float SpeedTilesPerSecond => SpeedFeet / FeetPerTilePerSecond;
 
@@ -42,7 +45,7 @@ public sealed record Stats(
             int dexterity = Abilities.DexterityModifier;
             if (Armor is null)
             {
-                return 10 + dexterity;
+                return UnarmoredBaseArmorClass + dexterity;
             }
 
             return Armor.MaxDexterityBonus switch

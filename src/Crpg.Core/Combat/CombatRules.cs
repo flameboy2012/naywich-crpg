@@ -22,15 +22,18 @@ public sealed class CombatRules(IDiceRoller dice)
     /// </summary>
     public const int DefaultAwarenessRadiusTiles = 8;
 
+    /// <summary>The HP a downed party member gets up with at combat end.</summary>
+    public const int GetUpHp = 1;
+
+    /// <summary>Melee reach in tiles: the range of every melee attack.</summary>
+    public const int MeleeReachTiles = 1;
+
     /// <summary>
     /// Walking speed in world pixels per real second (ADR 0003): the speed in tiles per second times the grid-step
     /// length, scaled by the global combat speed like the attack cooldown.
     /// </summary>
     public static float MoveSpeedPixelsPerSecond(float speedTilesPerSecond, float combatSpeed) =>
         speedTilesPerSecond * TileScale.GridStepLength * combatSpeed;
-
-    /// <summary>Melee reach in tiles: the range of every melee attack.</summary>
-    public const int MeleeReachTiles = 1;
 
     /// <summary>
     /// The farthest apart, in world pixels, two characters' feet may be for an attack of this range to reach: the
@@ -76,9 +79,6 @@ public sealed class CombatRules(IDiceRoller dice)
             : up.MinBy(candidate => enemyFeet.DistanceTo(candidate.Feet)).Id;
         return new EnemyTargetPick(IsAware: true, nearest);
     }
-
-    /// <summary>The HP a downed party member gets up with at combat end.</summary>
-    public const int GetUpHp = 1;
 
     /// <summary>
     /// Where combat stands, given every enemy in the zone and whether each party member is down. Every party member
