@@ -35,9 +35,10 @@ Tint = Color(0.2, 0.8, 0.8, 1)
 
 [node name="Camera2D" type="Camera2D" parent="CameraRig"]
 
-[node name="SelectionController" type="Node" parent="." node_paths=PackedStringArray("MoveMarkers", "PathLines")]
+[node name="SelectionController" type="Node" parent="." node_paths=PackedStringArray("MoveMarkers", "PathLines", "Party")]
 script = ExtResource("3_sel")
 MoveMarkers = NodePath("../MoveMarkers")
 PathLines = NodePath("../PathLines")
+Party = NodePath("../Party")
 
 [node name="UI" type="CanvasLayer" parent="."]

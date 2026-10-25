@@ -7,8 +7,9 @@ using GodotMouseButton = Godot.MouseButton;
 namespace Crpg;
 
 /// <summary>
-/// Turns mouse input into selection-model events and applies the result to the scene. A left press, drag and
-/// release becomes either a click or a box select; right-click is a click on press.
+/// Turns mouse and key input into selection-model events and applies the result to the scene. A left press, drag and
+/// release becomes either a click or a box select; right-click is a click on press; number keys and Ctrl+A become
+/// slot select and select-all events.
 /// Holds no control rules: those live in <see cref="SelectionModel"/> in Crpg.Core.
 /// </summary>
 public partial class SelectionController : Node
@@ -28,7 +29,16 @@ public partial class SelectionController : Node
     [Export]
     public Node2D PathLines { get; set; } = null!;
 
-    private readonly SelectionModel _model = new();
+    /// <summary>
+    /// The node the party members start under. Their order there is the portrait slot order: the first is slot 1.
+    /// </summary>
+    [Export]
+    public Node2D Party { get; set; } = null!;
+
+    /// <summary>The number of portrait slot actions in project.godot: select_slot_1 to select_slot_4.</summary>
+    private const int SlotActions = Core.Party.Cap;
+
+    private SelectionModel _model = null!;
 
     private Panel _box = null!;
 
@@ -54,6 +64,12 @@ public partial class SelectionController : Node
         layer.AddChild(_box);
         AddChild(layer);
 
+        // Main moves the party members into the zone in its own _Ready, which runs after this one, so the Party node
+        // still holds them here.
+        _model = new SelectionModel(Party.GetChildren()
+            .Select(partyMember => partyMember.GetNode<PlayerControl>("PlayerControl").PartyMemberId)
+            .ToArray());
+
         // Every party member has entered the tree (and joined the group) before any node's _Ready.
         foreach (PlayerControl partyMember in PartyMembers().Values)
         {
@@ -61,8 +77,24 @@ public partial class SelectionController : Node
         }
     }
 
+    /// <summary>
+    /// Selects the party member in a portrait slot (1 to 4), or with shift toggles them. A slot with no party member
+    /// changes nothing. Shared by the number keys and, later, the portraits.
+    /// </summary>
+    public void SelectSlot(int slot, bool shift) =>
+        Apply(_model.SlotSelect(new SlotSelectEvent(slot, shift)), PartyMembers());
+
+    /// <summary>Selects every party member.</summary>
+    public void SelectAll() => Apply(_model.SelectAll(), PartyMembers());
+
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (@event is InputEventKey { Pressed: true, Echo: false } key)
+        {
+            OnKey(key);
+            return;
+        }
+
         switch (@event)
         {
             case InputEventMouseButton { ButtonIndex: GodotMouseButton.Left } left:
@@ -75,6 +107,27 @@ public partial class SelectionController : Node
                 Click(ClickButton.Right, right.Position, right.ShiftPressed);
                 GetViewport().SetInputAsHandled();
                 break;
+        }
+    }
+
+    /// <summary>Number keys select by portrait slot, shift+number toggles a slot, and Ctrl+A selects the whole party.</summary>
+    private void OnKey(InputEventKey key)
+    {
+        if (key.IsActionPressed("select_all"))
+        {
+            SelectAll();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        for (int slot = 1; slot <= SlotActions; slot++)
+        {
+            if (key.IsActionPressed($"select_slot_{slot}"))
+            {
+                SelectSlot(slot, key.ShiftPressed);
+                GetViewport().SetInputAsHandled();
+                return;
+            }
         }
     }
 
