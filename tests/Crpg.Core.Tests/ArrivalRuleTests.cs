@@ -38,6 +38,19 @@ public class ArrivalRuleTests
     }
 
     [Fact]
+    public void Time_stalled_outside_the_arrival_distance_does_not_count_once_back_inside()
+    {
+        ArrivalRule rule = Rule();
+
+        // Gets close, is pushed back out and stalls there for a second, then drifts back in without beating the
+        // closest distance: the timeout starts again from the moment they are back inside.
+        Assert.False(Hold(rule, 16f, 1));
+        Assert.False(Hold(rule, 30f, 60));
+        Assert.False(Hold(rule, 16.5f, 29));
+        Assert.True(Hold(rule, 16.5f, 2));
+    }
+
+    [Fact]
     public void Walking_steadily_towards_the_destination_never_counts_as_arrived()
     {
         ArrivalRule rule = Rule();

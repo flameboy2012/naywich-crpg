@@ -29,7 +29,7 @@ public sealed class ArrivalRule
 
     /// <summary>
     /// Call once per physics frame while moving, with the distance left to the destination and the frame time.
-    /// Returns true when the move should finish.
+    /// Returns true once the party member has spent the timeout inside the arrival distance without progress.
     /// </summary>
     public bool Update(float distanceToDestination, float delta)
     {
@@ -40,7 +40,14 @@ public sealed class ArrivalRule
             return false;
         }
 
+        // Only time stalled inside the arrival distance counts; stepping back out starts the wait again.
+        if (distanceToDestination > _arrivalDistance)
+        {
+            _stalledFor = 0f;
+            return false;
+        }
+
         _stalledFor += delta;
-        return distanceToDestination <= _arrivalDistance && _stalledFor >= _noProgressTimeout;
+        return _stalledFor >= _noProgressTimeout;
     }
 }
