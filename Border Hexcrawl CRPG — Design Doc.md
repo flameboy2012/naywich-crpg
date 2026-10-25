@@ -336,10 +336,11 @@ Build in small, playable steps. Each milestone ends with something you can run a
 
 **M1.6 — Party UI and camera**
 
-- [ ] A test zone of about 2–3 screens, so the camera has somewhere to go
-- [ ] Portrait column: click, shift-click, double-click to centre
-- [ ] Keys 1–4 and Ctrl+A
-- [ ] Camera pan (edges, WASD/arrows, middle-mouse) and clamp
+- [x] A test zone of 48x48 tiles (about 2–3 screens), so the camera has somewhere to go. The camera starts centred on the party.
+- [x] Portrait column on the left edge: click, shift-click, double-click to centre. Placeholder portraits in each party member's tint, highlighted when selected.
+- [x] Keys 1–4 select by portrait slot, shift+number toggles, Ctrl+A selects the whole party
+- [x] Camera pan (edges, WASD/arrows, middle-mouse) and clamp to the zone bounds, with black outside the zone. No panning during box select or while Ctrl is held.
+- Deferred: follow-selected camera, double-tap a number key to centre, zoom.
 
 **M2 — Combat prototype**
 
