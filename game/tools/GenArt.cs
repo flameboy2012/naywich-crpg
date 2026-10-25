@@ -11,8 +11,8 @@ namespace Crpg.Tools;
 /// </summary>
 public partial class GenArt : SceneTree
 {
-    private const int TileWidth = 64;
-    private const int TileHeight = 32;
+    private static readonly int TileWidth = Tile.Size.X;
+    private static readonly int TileHeight = Tile.Size.Y;
 
     private static readonly Color GroundLight = new(0.36f, 0.62f, 0.32f);
     private static readonly Color GroundDark = new(0.30f, 0.54f, 0.27f);

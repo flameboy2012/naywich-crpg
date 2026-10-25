@@ -10,13 +10,22 @@ public partial class Character : CharacterBody2D
 {
     /// <summary>
     /// Length of one tile in world pixels, for movement speed. A "tile" here is one isometric grid step
-    /// (tile (x, y) to (x + 1, y)): the vector (32, 16) on a 64x32 tile, about 35.78 px. Characters move at
-    /// the same pixel speed in every direction.
+    /// (tile (x, y) to (x + 1, y)): half the tile size, (32, 16) on a 64x32 tile, about 35.78 px. Characters move
+    /// at the same pixel speed in every direction.
     /// </summary>
-    public static readonly float TileLength = new Vector2(32, 16).Length();
+    public static readonly float TileLength = ((Vector2)Tile.Size / 2).Length();
+
+    /// <summary>The character scene; the source of the feet radius for tools that bake navigation.</summary>
+    public const string ScenePath = "res://characters/Character.tscn";
 
     private Sprite2D _selectionRing = null!;
     private NavigationAgent2D _agent = null!;
+
+    /// <summary>
+    /// Radius of the feet collision circle, set in Character.tscn. The one source for the navigation agent radius and
+    /// the zone navigation mesh's margin. Readable before the character enters the tree.
+    /// </summary>
+    public float FeetRadius => ((CircleShape2D)GetNode<CollisionShape2D>("CollisionShape2D").Shape).Radius;
 
     /// <summary>
     /// Movement speed in tiles per second. 5e 30 ft per 6-second round = 1 tile per second (ADR 0001).
@@ -34,6 +43,7 @@ public partial class Character : CharacterBody2D
     {
         _selectionRing = GetNode<Sprite2D>("SelectionRing");
         _agent = GetNode<NavigationAgent2D>("NavigationAgent2D");
+        _agent.Radius = FeetRadius;
     }
 
     /// <summary>Shows or hides the ring under the character's feet.</summary>

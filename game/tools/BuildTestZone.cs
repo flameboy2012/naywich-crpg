@@ -14,14 +14,10 @@ public partial class BuildTestZone : SceneTree
     /// <summary>Zone is Size x Size tiles. 24x24 is 1536x768 px, inside 1920x1080 with margin.</summary>
     private const int Size = 24;
 
-    /// <summary>Navigation mesh margin kept clear of edges (and later obstacles). Matches Character's feet radius.</summary>
-    private const float AgentRadius = 8f;
 
     private const string TileSetPath = "res://zones/test_tiles.tres";
     private const string ZonePath = "res://zones/TestZone.tscn";
 
-    /// <summary>One tile's diamond in tile-local coordinates (centred on the tile).</summary>
-    private static readonly Vector2[] Diamond = { new(-32, 0), new(0, -16), new(32, 0), new(0, 16) };
 
     /// <summary>Atlas coordinates of the obstacle tile in res://art/tiles.png.</summary>
     private static readonly Vector2I ObstacleTile = new(2, 0);
@@ -51,7 +47,8 @@ public partial class BuildTestZone : SceneTree
         _region = new NavigationRegion2D
         {
             Name = "NavigationRegion2D",
-            NavigationPolygon = new NavigationPolygon { AgentRadius = AgentRadius },
+            // Margin kept clear of edges and obstacles: the character's feet radius.
+            NavigationPolygon = new NavigationPolygon { AgentRadius = CharacterFeetRadius() },
         };
 
         // The region bakes from its children: the ground tiles' navigation polygons. The layer's own per-tile
@@ -103,21 +100,22 @@ public partial class BuildTestZone : SceneTree
         {
             TileShape = TileSet.TileShapeEnum.Isometric,
             TileLayout = TileSet.TileLayoutEnum.DiamondDown,
-            TileSize = new Vector2I(64, 32),
+            TileSize = Tile.Size,
         };
         tileSet.AddPhysicsLayer();      // layer 0: obstacle collision (physics layer 1, characters collide with it)
         tileSet.AddNavigationLayer();   // layer 0: walkable ground
         var atlas = new TileSetAtlasSource
         {
             Texture = GD.Load<Texture2D>("res://art/tiles.png"),
-            TextureRegionSize = new Vector2I(64, 32),
+            TextureRegionSize = Tile.Size,
         };
         sourceId = tileSet.AddSource(atlas);
 
         // Region baking only sees tile navigation polygons that have an outline, not just a polygon.
-        var walkable = new NavigationPolygon { Vertices = Diamond };
+        Vector2[] diamond = Tile.Diamond();
+        var walkable = new NavigationPolygon { Vertices = diamond };
         walkable.AddPolygon(new[] { 0, 1, 2, 3 });
-        walkable.AddOutline(Diamond);
+        walkable.AddOutline(diamond);
         foreach (var coords in new[] { new Vector2I(0, 0), new Vector2I(1, 0) })   // ground, light and dark
         {
             atlas.CreateTile(coords);
@@ -129,10 +127,18 @@ public partial class BuildTestZone : SceneTree
         atlas.CreateTile(ObstacleTile);
         TileData obstacle = atlas.GetTileData(ObstacleTile, 0);
         obstacle.AddCollisionPolygon(0);
-        obstacle.SetCollisionPolygonPoints(0, 0, Diamond);
+        obstacle.SetCollisionPolygonPoints(0, 0, diamond);
 
         Check(ResourceSaver.Save(tileSet, TileSetPath), TileSetPath);
         return GD.Load<TileSet>(TileSetPath);   // reload so the scene references the file, not an embedded copy
+    }
+
+    private static float CharacterFeetRadius()
+    {
+        var character = GD.Load<PackedScene>(Character.ScenePath).Instantiate<Character>();
+        float radius = character.FeetRadius;
+        character.Free();
+        return radius;
     }
 
     private static bool IsObstacle(int x, int y)

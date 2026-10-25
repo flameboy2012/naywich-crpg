@@ -19,8 +19,6 @@ public partial class ObstacleCheck : HeadlessCheck
     /// <summary>The middle tile of an obstacle block, unreachable.</summary>
     private static readonly Vector2I InsideObstacleTile = new(17, 5);
 
-    /// <summary>Radius of the party member's feet collision circle (Character.tscn).</summary>
-    private const float FeetRadius = 8f;
 
     private static readonly Vector2 ViewSize = new(1920, 1080);
 
@@ -53,7 +51,7 @@ public partial class ObstacleCheck : HeadlessCheck
             groundClosest.DistanceTo(groundCentre) < 0.5f);
         Expect($"zone has obstacle tiles ({obstacleTiles.Count})", obstacleTiles.Count > 0);
         Expect("every obstacle tile is a hole in the navigation mesh, with the feet-radius margin", obstacleTiles.All(c =>
-            DistanceToObstacles(NavigationServer2D.MapGetClosestPoint(map, TileCentre(c))) >= FeetRadius - 0.5f));
+            DistanceToObstacles(NavigationServer2D.MapGetClosestPoint(map, TileCentre(c))) >= PartyMember.FeetRadius - 0.5f));
 
         Rect2 zoneOnScreen = ZoneScreenRect();
         Expect($"whole zone fits the 1920x1080 view with the static camera ({zoneOnScreen})",
@@ -95,8 +93,8 @@ public partial class ObstacleCheck : HeadlessCheck
             !PartyMember.IsMoving && PartyMember.GlobalPosition.DistanceTo(pastWall) < ArriveTolerance);
         Expect($"walks round the wall ({walked:0} px walked, {start.DistanceTo(pastWall):0} px straight)",
             walked > start.DistanceTo(pastWall) * 1.2f);
-        Expect($"never overlaps an obstacle on the way (closest {_closestToObstacle:0.0} px, feet radius {FeetRadius})",
-            _closestToObstacle >= FeetRadius - 0.5f);
+        Expect($"never overlaps an obstacle on the way (closest {_closestToObstacle:0.0} px, feet radius {PartyMember.FeetRadius})",
+            _closestToObstacle >= PartyMember.FeetRadius - 0.5f);
 
         Expect("the inside-obstacle target is an obstacle (precondition)", IsObstacle(InsideObstacleTile));
         Vector2 inside = TileCentre(InsideObstacleTile);
@@ -113,7 +111,7 @@ public partial class ObstacleCheck : HeadlessCheck
         Expect($"right-click inside an obstacle ends at the closest reachable point (off by {stopped.DistanceTo(closest):0.0} px)",
             !PartyMember.IsMoving && stopped.DistanceTo(closest) < ArriveTolerance);
         Expect($"never overlaps an obstacle on the way (closest {_closestToObstacle:0.0} px)",
-            _closestToObstacle >= FeetRadius - 0.5f);
+            _closestToObstacle >= PartyMember.FeetRadius - 0.5f);
         yield return 60;
         Expect("stays still after stopping", PartyMember.GlobalPosition.DistanceTo(stopped) < StillTolerance);
     }
@@ -128,8 +126,7 @@ public partial class ObstacleCheck : HeadlessCheck
     private Vector2[] TileDiamond(Vector2I tile)
     {
         Vector2 c = TileCentre(tile);
-        Vector2 half = _ground.TileSet.TileSize / 2;
-        return new[] { c + new Vector2(-half.X, 0), c + new Vector2(0, -half.Y), c + new Vector2(half.X, 0), c + new Vector2(0, half.Y) };
+        return Tile.Diamond().Select(corner => c + corner).ToArray();
     }
 
     /// <summary>Distance from a point to the nearest obstacle diamond; 0 if inside one.</summary>

@@ -39,7 +39,6 @@ shape = SubResource("CapsuleShape2D_click")
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
 path_desired_distance = 4.0
 target_desired_distance = 4.0
-radius = 8.0
 
 [node name="PlayerControl" type="Node" parent="."]
 script = ExtResource("2_ctrl")
