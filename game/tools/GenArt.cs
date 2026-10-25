@@ -1,0 +1,111 @@
+using Godot;
+
+namespace Crpg.Tools;
+
+/// <summary>
+/// Generates the placeholder art (ADR 0001: 64x32 diamond tiles) into res://art/.
+/// Run from game/: dotnet build ..\Crpg.sln, then
+///   godot --headless --path . --quit-after 60 --script res://tools/GenArt.cs
+///   godot --headless --path . --import
+/// The output PNGs are committed; rerun this only to change the art.
+/// </summary>
+public partial class GenArt : SceneTree
+{
+    private const int TileWidth = 64;
+    private const int TileHeight = 32;
+
+    private static readonly Color GroundLight = new(0.36f, 0.62f, 0.32f);
+    private static readonly Color GroundDark = new(0.30f, 0.54f, 0.27f);
+    private static readonly Color CapsuleBody = new(0.25f, 0.45f, 0.85f);
+    private static readonly Color CapsuleEdge = new(0.12f, 0.22f, 0.45f);
+    private static readonly Color Ring = new(1.0f, 0.85f, 0.2f);
+
+    public override void _Initialize()
+    {
+        Save(Tiles(), "res://art/tiles.png");
+        Save(Capsule(), "res://art/capsule.png");
+        Save(SelectionRing(), "res://art/selection_ring.png");
+        Quit();
+    }
+
+    private static void Save(Image image, string path)
+    {
+        Error err = image.SavePng(path);
+        GD.Print($"{path}: {err}");
+        if (err != Error.Ok)
+        {
+            GD.PushError($"GenArt: failed to save {path}: {err}");
+        }
+    }
+
+    /// <summary>Atlas of two ground tiles side by side, (0,0) light and (1,0) dark, for a checker pattern.</summary>
+    private static Image Tiles()
+    {
+        var img = Image.CreateEmpty(TileWidth * 2, TileHeight, false, Image.Format.Rgba8);
+        Color[] colours = { GroundLight, GroundDark };
+        for (int t = 0; t < colours.Length; t++)
+        {
+            for (int y = 0; y < TileHeight; y++)
+            {
+                for (int x = 0; x < TileWidth; x++)
+                {
+                    float d = Mathf.Abs(x - (TileWidth - 1) / 2f) / (TileWidth / 2f)
+                            + Mathf.Abs(y - (TileHeight - 1) / 2f) / (TileHeight / 2f);
+                    if (d <= 1f)
+                    {
+                        img.SetPixel(t * TileWidth + x, y, colours[t]);
+                    }
+                }
+            }
+        }
+
+        return img;
+    }
+
+    /// <summary>A 24x48 upright capsule with a dark edge.</summary>
+    private static Image Capsule()
+    {
+        const int w = 24, h = 48, r = 12;
+        var img = Image.CreateEmpty(w, h, false, Image.Format.Rgba8);
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                float px = x + 0.5f, py = y + 0.5f;
+                float cy = Mathf.Clamp(py, r, h - r);   // nearest point on the capsule's centre line
+                float dist = new Vector2(px - r, py - cy).Length();
+                if (dist <= r)
+                {
+                    img.SetPixel(x, y, dist > r - 2f ? CapsuleEdge : CapsuleBody);
+                }
+            }
+        }
+
+        return img;
+    }
+
+    /// <summary>A 44x22 ellipse outline, flattened 2:1 to read as a circle on the isometric ground.</summary>
+    private static Image SelectionRing()
+    {
+        const int w = 44, h = 22;
+        const float thickness = 2.5f;
+        var img = Image.CreateEmpty(w, h, false, Image.Format.Rgba8);
+        float a = w / 2f, b = h / 2f;
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                float dx = x + 0.5f - a, dy = y + 0.5f - b;
+                float outer = dx * dx / (a * a) + dy * dy / (b * b);
+                float ia = a - thickness, ib = b - thickness;
+                float inner = dx * dx / (ia * ia) + dy * dy / (ib * ib);
+                if (outer <= 1f && inner >= 1f)
+                {
+                    img.SetPixel(x, y, Ring);
+                }
+            }
+        }
+
+        return img;
+    }
+}
