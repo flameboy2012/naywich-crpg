@@ -46,6 +46,20 @@ _Avoid_: Cursor, waypoint
 The drawn route from a moving party member to their destination, shown whether or not they are selected.
 _Avoid_: Trail, route preview
 
+**Portrait slot**:
+A party member's fixed position, 1 to 4, in the portrait column. Number keys select by portrait slot.
+_Avoid_: Index, hotkey slot
+
+## Camera
+
+**Pan**:
+Moving the camera across the zone without moving any party member.
+_Avoid_: Scroll
+
+**Zone bounds**:
+The rectangle the camera may show: the zone plus a small margin.
+_Avoid_: Map edge, level bounds
+
 ## Space
 
 **Tile**:
