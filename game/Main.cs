@@ -14,7 +14,7 @@ public partial class Main : Node2D
     public override void _Ready()
     {
         Node2D zone = LoadZone(TestZonePath);
-        CentreCameraOn(zone.GetNode<TileMapLayer>("Ground"));
+        CentreCameraOn(zone.GetNode<TileMapLayer>("NavigationRegion2D/Ground"));
     }
 
     /// <summary>Loads a zone into ZoneContainer and reparents the party members into it.</summary>

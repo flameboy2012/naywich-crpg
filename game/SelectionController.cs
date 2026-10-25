@@ -77,5 +77,14 @@ public partial class SelectionController : Node
         {
             partyMember.Character.SelectionRingVisible = result.Selection.Contains(partyMember.PartyMemberId);
         }
+
+        foreach (Order order in result.Orders)
+        {
+            if (order is MoveOrder move
+                && partyMembers.FirstOrDefault(p => p.PartyMemberId == move.PartyMember) is { } partyMember)
+            {
+                partyMember.Character.MoveTo(new Vector2(move.Destination.X, move.Destination.Y));
+            }
+        }
     }
 }
