@@ -130,7 +130,7 @@ public partial class Character : CharacterBody2D
         IsMoving = true;
     }
 
-    // Physics processing obeys ProcessMode, so pausing the tree (M2) stops movement.
+    // Physics processing obeys ProcessMode, so pausing the tree (PauseManager) stops movement.
     public override void _PhysicsProcess(double delta)
     {
         if (!IsMoving)
