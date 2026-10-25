@@ -47,21 +47,25 @@ public partial class BuildTestZone : SceneTree
         new(42, 11, 1, 3),   // L, leg
     };
 
-    private const string GoblinStatsPath = "res://data/monsters/goblin_scimitar.tres";
+    private const string ScimitarGoblinPath = "res://data/monsters/goblin_scimitar.tres";
+    private const string ShortbowGoblinPath = "res://data/monsters/goblin_shortbow.tres";
 
     /// <summary>Placeholder goblin tint: a muddy green, distinct from the four party member tints.</summary>
     private static readonly Color GoblinTint = new(0.45f, 0.7f, 0.25f);
 
     /// <summary>
-    /// Goblins, as (node name, combat log name, tile). About 15 tiles east of the party start at tile (8, 12), well
-    /// past the 200 px moves the other headless checks make, and off the straight path from the party to them.
-    /// Goblin 2 stands behind Goblin 1, just out of the rogue's shortbow range from the party start, for CombatCheck's
-    /// ranged attackers.
+    /// Goblins, as (node name, combat log name, stats, tile): one cluster of four, two scimitars and two shortbows,
+    /// about 15 tiles south-east of the party start at tile (8, 12). The cluster sits more than the 8-tile awareness
+    /// radius away from everywhere the other headless checks walk (moves of about 200 px from the start, and the
+    /// obstacle block at (16, 4)), so those checks never wake a goblin. Goblin 1 is the nearest; Goblin 2 stands at the
+    /// back, just out of the rogue's shortbow range from the party start, for CombatCheck's ranged attackers.
     /// </summary>
-    private static readonly (string Node, string Name, Vector2I Tile)[] Goblins =
+    private static readonly (string Node, string Name, string Stats, Vector2I Tile)[] Goblins =
     {
-        ("Goblin1", "Goblin 1", new Vector2I(22, 8)),
-        ("Goblin2", "Goblin 2", new Vector2I(24, 7)),
+        ("Goblin1", "Goblin 1", ScimitarGoblinPath, new Vector2I(27, 24)),
+        ("Goblin2", "Goblin 2", ShortbowGoblinPath, new Vector2I(30, 26)),
+        ("Goblin3", "Goblin 3", ScimitarGoblinPath, new Vector2I(29, 24)),
+        ("Goblin4", "Goblin 4", ShortbowGoblinPath, new Vector2I(28, 26)),
     };
 
     private Node2D _zone = null!;
@@ -171,8 +175,7 @@ public partial class BuildTestZone : SceneTree
     private void AddGoblins(TileMapLayer ground)
     {
         var scene = GD.Load<PackedScene>(Character.ScenePath);
-        var stats = GD.Load<Data.CharacterStats>(GoblinStatsPath);
-        foreach ((string node, string name, Vector2I tile) in Goblins)
+        foreach ((string node, string name, string statsPath, Vector2I tile) in Goblins)
         {
             if (IsObstacle(tile))
             {
@@ -183,7 +186,7 @@ public partial class BuildTestZone : SceneTree
             goblin.Name = node;
             goblin.InstanceName = name;
             goblin.Tint = GoblinTint;
-            goblin.CharacterStats = stats;
+            goblin.CharacterStats = GD.Load<Data.CharacterStats>(statsPath);
             goblin.Position = ground.MapToLocal(tile);
             _zone.AddChild(goblin);
             goblin.Owner = _zone;

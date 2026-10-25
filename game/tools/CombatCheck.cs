@@ -53,8 +53,8 @@ public partial class CombatCheck : HeadlessCheck
         @"^(?<attacker>Rogue|Wizard) → Goblin 2: \d+\+4=\d+ vs AC 15 (hit|miss|nat 20 crit|nat 1 miss)"
         + @"(, (?<damage>\d+d\d+(\+\d+)?=\d+ \w+))? \(Goblin 2: \d+/7(, dead)?\)$");
 
-    /// <summary>Where Goblin 2 walks to: out of both the rogue's and the wizard's range, past the wall's north end.</summary>
-    private static readonly Vector2I FleeTile = new(34, 4);
+    /// <summary>Where Goblin 2 walks to: out of both the rogue's and the wizard's range, past the block at (36, 28).</summary>
+    private static readonly Vector2I FleeTile = new(44, 30);
 
     /// <summary>How long the check waits for Goblin 2 to finish walking away.</summary>
     private const int FleeFrames = 1500;

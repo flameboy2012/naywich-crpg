@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" path="res://characters/Character.tscn" id="2_vnwra"]
 [ext_resource type="Resource" path="res://data/monsters/goblin_scimitar.tres" id="3_a0bnf"]
 [ext_resource type="Script" path="res://characters/AiControl.cs" id="4_scdah"]
+[ext_resource type="Resource" path="res://data/monsters/goblin_shortbow.tres" id="5_eqg1c"]
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_jimft"]
 vertices = PackedVector2Array(424, 1092.9375, 1550.1016, 768, 32, 1527.0469, 387.57813, 1111.1563, 323.57813, 1143.1563, 288, 1160.9375, 520, 372.9375, 800, 567.0625, 764.4219, 584.84375, 360, 548.9375, 360, 539.0625, 483.57813, 391.15625, 444.42188, 744.84375, 323.57813, 567.15625, 952, 820.9375, 988.4219, 839.15625, 1006.10156, 848, 956.4219, 872.84375, 483.57813, 775.15625, 104, 516.9375, 216, 516.9375, 252.42188, 535.15625, 270.10156, 544, 252.42188, 552.84375, 216, 571.0625, 67.578125, 535.15625, 424, 1083.0625, 960, 920.9375, 1096, 852.9375, 1096, 843.0625, 840, 596.9375, 840, 587.0625, 1059.5781, 824.84375, 1027.5781, 808.84375, 992, 791.0625, 952, 811.0625, 803.5781, 615.15625, 252.42188, 1143.1563, 188.42188, 1111.1563, 408, 763.0625, 291.57813, 583.15625, 216, 507.0625, 104, 507.0625, -472, 772.9375, 408, 772.9375, -512, 792.9375, 256, 600.9375, -472, 763.0625, 216, 580.9375, -248, 1076.9375, -248, 1067.0625, 152, 1083.0625, 152, 1092.9375, -284.42188, 1095.1563, -316.42188, 1111.1563, 920, 891.0625, -352, 1128.9375, -1486.1016, 768, -387.57813, 1111.1563, -419.57813, 1095.1563, -456, 1076.9375, -456, 1067.0625, 520, 363.0625, 451.57813, 407.15625, 416, 424.9375, 323.57813, 520.84375, 380.42188, 407.15625, 348.42188, 391.15625, 291.57813, 504.84375, 312, 372.9375, 256, 487.0625, -508.42188, 744.84375, 387.57813, 1064.8438, 448, 792.9375, 920, 900.9375, 136, 148.9375, 136, 139.0625, 483.57813, 344.84375, 451.57813, 328.84375, 416, 311.0625, 380.42188, 328.84375, 348.42188, 344.84375, 312, 363.0625, 99.578125, 167.15625, -284.42188, 359.15625, 32, 8.953125, 96, 119.0625, 60.421875, 136.84375, -323.57813, 328.84375, -360, 347.0625, -360, 356.9375, -736, 631.0625, -320, 376.9375, -104, 507.0625, 0, 455.0625, -419.57813, 1048.8438, -387.57813, 1032.8438, 35.578125, 551.15625, -352, 1015.0625, -776, 660.9375, -739.5781, 679.15625, -700.4219, 648.84375, 0, 568.9375, -35.578125, 551.15625, -67.578125, 535.15625, -104, 516.9375, 188.42188, 1064.8438, -284.42188, 1048.8438, 252.42188, 1032.8438, -316.42188, 1032.8438, 67.578125, 488.84375, 288, 1015.0625, 35.578125, 472.84375, 1059.5781, 871.15625, -35.578125, 472.84375, -67.578125, 488.84375, -776, 651.0625, -547.5781, 775.15625, 323.57813, 1032.8438, 995.5781, 903.15625)
@@ -21,7 +22,7 @@ tile_set = ExtResource("1_hc3gv")
 navigation_enabled = false
 
 [node name="Goblin1" parent="." unique_id=827470460 instance=ExtResource("2_vnwra")]
-position = Vector2(480, 496)
+position = Vector2(128, 832)
 Tint = Color(0.45, 0.7, 0.25, 1)
 CharacterStats = ExtResource("3_a0bnf")
 InstanceName = "Goblin 1"
@@ -30,10 +31,28 @@ InstanceName = "Goblin 1"
 script = ExtResource("4_scdah")
 
 [node name="Goblin2" parent="." unique_id=1202498147 instance=ExtResource("2_vnwra")]
-position = Vector2(576, 512)
+position = Vector2(160, 912)
 Tint = Color(0.45, 0.7, 0.25, 1)
-CharacterStats = ExtResource("3_a0bnf")
+CharacterStats = ExtResource("5_eqg1c")
 InstanceName = "Goblin 2"
 
 [node name="AiControl" type="Node" parent="Goblin2" unique_id=925406248]
+script = ExtResource("4_scdah")
+
+[node name="Goblin3" parent="." unique_id=908054490 instance=ExtResource("2_vnwra")]
+position = Vector2(192, 864)
+Tint = Color(0.45, 0.7, 0.25, 1)
+CharacterStats = ExtResource("3_a0bnf")
+InstanceName = "Goblin 3"
+
+[node name="AiControl" type="Node" parent="Goblin3" unique_id=579696479]
+script = ExtResource("4_scdah")
+
+[node name="Goblin4" parent="." unique_id=947610112 instance=ExtResource("2_vnwra")]
+position = Vector2(96, 880)
+Tint = Color(0.45, 0.7, 0.25, 1)
+CharacterStats = ExtResource("5_eqg1c")
+InstanceName = "Goblin 4"
+
+[node name="AiControl" type="Node" parent="Goblin4" unique_id=539761078]
 script = ExtResource("4_scdah")
