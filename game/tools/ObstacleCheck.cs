@@ -13,11 +13,11 @@ namespace Crpg.Tools;
 /// </summary>
 public partial class ObstacleCheck : SceneTree
 {
-    /// <summary>A cell on the far side of the wall from the party member's start.</summary>
-    private static readonly Vector2I PastWallCell = new(2, 10);
+    /// <summary>A tile on the far side of the wall from the party member's start.</summary>
+    private static readonly Vector2I PastWallTile = new(2, 10);
 
-    /// <summary>The middle cell of an obstacle block, unreachable.</summary>
-    private static readonly Vector2I InsideObstacleCell = new(17, 5);
+    /// <summary>The middle tile of an obstacle block, unreachable.</summary>
+    private static readonly Vector2I InsideObstacleTile = new(17, 5);
 
     /// <summary>How close (px) counts as "arrived": the agent's target distance plus one physics step.</summary>
     private const float ArriveTolerance = 6f;
@@ -72,10 +72,10 @@ public partial class ObstacleCheck : SceneTree
     {
         _partyMember = Root.GetNode<Character>("Main/ZoneContainer/TestZone/PartyMember1");
         _ground = Root.GetNode<TileMapLayer>("Main/ZoneContainer/TestZone/NavigationRegion2D/Ground");
-        List<Vector2I> obstacleCells = _ground.GetUsedCells().Where(IsObstacle).ToList();
-        _obstacles = obstacleCells.Select(CellDiamond).ToList();
+        List<Vector2I> obstacleTiles = _ground.GetUsedCells().Where(IsObstacle).ToList();
+        _obstacles = obstacleTiles.Select(TileDiamond).ToList();
         Rid map = _ground.GetParent<NavigationRegion2D>().GetNavigationMap();
-        Vector2 groundCentre = CellCentre(_ground.LocalToMap(_ground.ToLocal(_partyMember.GlobalPosition)));
+        Vector2 groundCentre = TileCentre(_ground.LocalToMap(_ground.ToLocal(_partyMember.GlobalPosition)));
         for (int i = 0; i < 120 && NavigationServer2D.MapGetClosestPoint(map, groundCentre) == Vector2.Zero; i++)
         {
             yield return 1;   // map queries return (0, 0) until the map has synced with the zone's region
@@ -84,16 +84,16 @@ public partial class ObstacleCheck : SceneTree
         Vector2 groundClosest = NavigationServer2D.MapGetClosestPoint(map, groundCentre);
         Expect($"ground under the party member is on the navigation mesh ({groundCentre} -> {groundClosest})",
             groundClosest.DistanceTo(groundCentre) < 0.5f);
-        Expect($"zone has obstacle tiles ({obstacleCells.Count})", obstacleCells.Count > 0);
-        Expect("every obstacle tile is a hole in the navigation mesh, with the feet-radius margin", obstacleCells.All(c =>
-            DistanceToObstacles(NavigationServer2D.MapGetClosestPoint(map, CellCentre(c))) >= FeetRadius - 0.5f));
+        Expect($"zone has obstacle tiles ({obstacleTiles.Count})", obstacleTiles.Count > 0);
+        Expect("every obstacle tile is a hole in the navigation mesh, with the feet-radius margin", obstacleTiles.All(c =>
+            DistanceToObstacles(NavigationServer2D.MapGetClosestPoint(map, TileCentre(c))) >= FeetRadius - 0.5f));
 
         Rect2 zoneOnScreen = ZoneScreenRect();
         Expect($"whole zone fits the 1920x1080 view with the static camera ({zoneOnScreen})",
             new Rect2(Vector2.Zero, ViewSize).Encloses(zoneOnScreen) && Root.GetVisibleRect().Size == ViewSize);
 
         Vector2 start = _partyMember.GlobalPosition;
-        Vector2 onObstacle = CellCentre(obstacleCells[0]);
+        Vector2 onObstacle = TileCentre(obstacleTiles[0]);
         Click(MouseButton.Right, onObstacle);
         yield return 30;
         Expect("right-click on an obstacle with nothing selected does nothing",
@@ -109,10 +109,10 @@ public partial class ObstacleCheck : SceneTree
         yield return 2;
         Expect("left-click selects them again", _partyMember.SelectionRingVisible);
 
-        Vector2 pastWall = CellCentre(PastWallCell);
+        Vector2 pastWall = TileCentre(PastWallTile);
         Expect("the straight line to the target crosses an obstacle (precondition)",
             _obstacles.Any(d => SegmentHitsPolygon(start, pastWall, d)));
-        Expect("the target past the wall is not an obstacle (precondition)", !IsObstacle(PastWallCell));
+        Expect("the target past the wall is not an obstacle (precondition)", !IsObstacle(PastWallTile));
         _closestToObstacle = float.MaxValue;
         float walked = 0;
         Click(MouseButton.Right, pastWall);
@@ -131,8 +131,8 @@ public partial class ObstacleCheck : SceneTree
         Expect($"never overlaps an obstacle on the way (closest {_closestToObstacle:0.0} px, feet radius {FeetRadius})",
             _closestToObstacle >= FeetRadius - 0.5f);
 
-        Expect("the inside-obstacle target is an obstacle (precondition)", IsObstacle(InsideObstacleCell));
-        Vector2 inside = CellCentre(InsideObstacleCell);
+        Expect("the inside-obstacle target is an obstacle (precondition)", IsObstacle(InsideObstacleTile));
+        Vector2 inside = TileCentre(InsideObstacleTile);
         Vector2 closest = NavigationServer2D.MapGetClosestPoint(map, inside);
         _closestToObstacle = float.MaxValue;
         Click(MouseButton.Right, inside);
@@ -151,16 +151,16 @@ public partial class ObstacleCheck : SceneTree
         Expect("stays still after stopping", _partyMember.GlobalPosition.DistanceTo(stopped) < 0.01f);
     }
 
-    private bool IsObstacle(Vector2I cell) =>
+    private bool IsObstacle(Vector2I tile) =>
         _ground.TileSet.GetPhysicsLayersCount() > 0
-        && _ground.GetCellTileData(cell) is { } data && data.GetCollisionPolygonsCount(0) > 0;
+        && _ground.GetCellTileData(tile) is { } data && data.GetCollisionPolygonsCount(0) > 0;
 
-    private Vector2 CellCentre(Vector2I cell) => _ground.ToGlobal(_ground.MapToLocal(cell));
+    private Vector2 TileCentre(Vector2I tile) => _ground.ToGlobal(_ground.MapToLocal(tile));
 
-    /// <summary>The cell's diamond in global coordinates.</summary>
-    private Vector2[] CellDiamond(Vector2I cell)
+    /// <summary>The tile's diamond in global coordinates.</summary>
+    private Vector2[] TileDiamond(Vector2I tile)
     {
-        Vector2 c = CellCentre(cell);
+        Vector2 c = TileCentre(tile);
         Vector2 half = _ground.TileSet.TileSize / 2;
         return new[] { c + new Vector2(-half.X, 0), c + new Vector2(0, -half.Y), c + new Vector2(half.X, 0), c + new Vector2(0, half.Y) };
     }
@@ -189,14 +189,14 @@ public partial class ObstacleCheck : SceneTree
     private static bool SegmentHitsPolygon(Vector2 a, Vector2 b, Vector2[] polygon) =>
         Geometry2D.IntersectPolylineWithPolygon(new[] { a, b }, polygon).Count > 0;
 
-    /// <summary>The bounding box of every used cell's diamond, in screen (viewport) pixels.</summary>
+    /// <summary>The bounding box of every used tile's diamond, in screen (viewport) pixels.</summary>
     private Rect2 ZoneScreenRect()
     {
         Transform2D toScreen = Root.GetCanvasTransform();
         Rect2? rect = null;
-        foreach (Vector2I cell in _ground.GetUsedCells())
+        foreach (Vector2I tile in _ground.GetUsedCells())
         {
-            foreach (Vector2 corner in CellDiamond(cell))
+            foreach (Vector2 corner in TileDiamond(tile))
             {
                 Vector2 s = toScreen * corner;
                 rect = rect is { } r ? r.Expand(s) : new Rect2(s, Vector2.Zero);

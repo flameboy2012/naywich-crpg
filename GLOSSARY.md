@@ -5,7 +5,7 @@ A party-based CRPG ported from a D&D 5e hexcrawl. The party explores a graph of 
 ## Actors
 
 **Character**:
-Any actor in a zone that has stats: a party member, monster, NPC or escort.
+Anyone in a zone that has stats: a party member, monster, NPC or escort.
 _Avoid_: Unit, actor, entity
 
 **Party member**:

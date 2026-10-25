@@ -3,14 +3,14 @@ using Godot;
 namespace Crpg;
 
 /// <summary>
-/// Any actor in a zone that has stats. Party members and (later) monsters share this scene; a child
+/// Anyone in a zone that has stats. Party members and (later) monsters share this scene; a child
 /// control component (PlayerControl in M1) decides who gives it orders.
 /// </summary>
 public partial class Character : CharacterBody2D
 {
     /// <summary>
     /// Length of one tile in world pixels, for movement speed. A "tile" here is one isometric grid step
-    /// (cell (x, y) to (x + 1, y)): the vector (32, 16) on a 64x32 tile, about 35.78 px. Characters move at
+    /// (tile (x, y) to (x + 1, y)): the vector (32, 16) on a 64x32 tile, about 35.78 px. Characters move at
     /// the same pixel speed in every direction.
     /// </summary>
     public static readonly float TileLength = new Vector2(32, 16).Length();

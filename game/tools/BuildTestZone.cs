@@ -27,7 +27,7 @@ public partial class BuildTestZone : SceneTree
     private static readonly Vector2I ObstacleTile = new(2, 0);
 
     /// <summary>
-    /// Obstacle layout, as inclusive cell rectangles (x0, y0, x1, y1). The party member starts at cell (8, 12):
+    /// Obstacle layout, as inclusive tile rectangles (x0, y0, x1, y1). The party member starts at tile (8, 12):
     /// a long wall to their west, two blocks and an L to the east. Clear of the paths SelectionCheck and MoveCheck use.
     /// </summary>
     private static readonly (int X0, int Y0, int X1, int Y1)[] Obstacles =
