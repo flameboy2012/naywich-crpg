@@ -32,8 +32,9 @@ Tint = Color(0.7, 0.4, 0.9, 1)
 position = Vector2(-96, 400)
 Tint = Color(0.2, 0.8, 0.8, 1)
 
-[node name="CameraRig" type="Node2D" parent="."]
+[node name="CameraRig" type="Node2D" parent="." node_paths=PackedStringArray("Selection")]
 script = ExtResource("4_cam")
+Selection = NodePath("../SelectionController")
 
 [node name="Camera2D" type="Camera2D" parent="CameraRig"]
 
