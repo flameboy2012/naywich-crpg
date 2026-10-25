@@ -11,7 +11,7 @@ namespace Crpg.Tools;
 ///   godot --headless --path . --fixed-fps 60 --quit-after 3600 --script res://tools/ObstacleCheck.cs
 /// Prints "ObstacleCheck: PASSED" and exits 0, or prints ERROR lines and exits 1.
 /// </summary>
-public partial class ObstacleCheck : SceneTree
+public partial class ObstacleCheck : HeadlessCheck
 {
     /// <summary>A tile on the far side of the wall from the party member's start.</summary>
     private static readonly Vector2I PastWallTile = new(2, 10);
@@ -19,63 +19,30 @@ public partial class ObstacleCheck : SceneTree
     /// <summary>The middle tile of an obstacle block, unreachable.</summary>
     private static readonly Vector2I InsideObstacleTile = new(17, 5);
 
-    /// <summary>How close (px) counts as "arrived": the agent's target distance plus one physics step.</summary>
-    private const float ArriveTolerance = 6f;
-
     /// <summary>Radius of the party member's feet collision circle (Character.tscn).</summary>
     private const float FeetRadius = 8f;
 
     private static readonly Vector2 ViewSize = new(1920, 1080);
 
-    private Character _partyMember = null!;
     private TileMapLayer _ground = null!;
     private List<Vector2[]> _obstacles = null!;
-    private IEnumerator<int> _script = null!;
-    private int _wait;
-    private bool _failed;
     private float _closestToObstacle = float.MaxValue;
 
-    public override void _Initialize()
-    {
-        Root.AddChild(GD.Load<PackedScene>("res://Main.tscn").Instantiate());
-        _script = Run();
-        _wait = 5;   // let Main load the zone and the navigation map sync
-    }
-
-    public override bool _PhysicsProcess(double delta)
+    protected override void EachPhysicsFrame()
     {
         if (_obstacles is not null)
         {
-            _closestToObstacle = Mathf.Min(_closestToObstacle, DistanceToObstacles(_partyMember.GlobalPosition));
+            _closestToObstacle = Mathf.Min(_closestToObstacle, DistanceToObstacles(PartyMember.GlobalPosition));
         }
-
-        if (--_wait > 0)
-        {
-            return false;
-        }
-
-        if (_script.MoveNext())
-        {
-            _wait = _script.Current;
-        }
-        else
-        {
-            GD.Print(_failed ? "ObstacleCheck: FAILED" : "ObstacleCheck: PASSED");
-            Quit(_failed ? 1 : 0);
-        }
-
-        return false;
     }
 
-    /// <summary>The check, as steps. Each yield is the number of physics frames to wait before the next step.</summary>
-    private IEnumerator<int> Run()
+    protected override IEnumerator<int> Run()
     {
-        _partyMember = Root.GetNode<Character>("Main/ZoneContainer/TestZone/PartyMember1");
         _ground = Root.GetNode<TileMapLayer>("Main/ZoneContainer/TestZone/NavigationRegion2D/Ground");
         List<Vector2I> obstacleTiles = _ground.GetUsedCells().Where(IsObstacle).ToList();
         _obstacles = obstacleTiles.Select(TileDiamond).ToList();
         Rid map = _ground.GetParent<NavigationRegion2D>().GetNavigationMap();
-        Vector2 groundCentre = TileCentre(_ground.LocalToMap(_ground.ToLocal(_partyMember.GlobalPosition)));
+        Vector2 groundCentre = TileCentre(_ground.LocalToMap(_ground.ToLocal(PartyMember.GlobalPosition)));
         for (int i = 0; i < 120 && NavigationServer2D.MapGetClosestPoint(map, groundCentre) == Vector2.Zero; i++)
         {
             yield return 1;   // map queries return (0, 0) until the map has synced with the zone's region
@@ -92,22 +59,22 @@ public partial class ObstacleCheck : SceneTree
         Expect($"whole zone fits the 1920x1080 view with the static camera ({zoneOnScreen})",
             new Rect2(Vector2.Zero, ViewSize).Encloses(zoneOnScreen) && Root.GetVisibleRect().Size == ViewSize);
 
-        Vector2 start = _partyMember.GlobalPosition;
+        Vector2 start = PartyMember.GlobalPosition;
         Vector2 onObstacle = TileCentre(obstacleTiles[0]);
         Click(MouseButton.Right, onObstacle);
         yield return 30;
         Expect("right-click on an obstacle with nothing selected does nothing",
-            _partyMember.GlobalPosition.DistanceTo(start) < 0.01f && !_partyMember.IsMoving);
-        Click(MouseButton.Left, start + new Vector2(0, -24));
+            PartyMember.GlobalPosition.DistanceTo(start) < StillTolerance && !PartyMember.IsMoving);
+        ClickPartyMember(MouseButton.Left);
         yield return 2;
-        Expect("left-click selects them", _partyMember.SelectionRingVisible);
+        Expect("left-click selects them", PartyMember.SelectionRingVisible);
         Click(MouseButton.Left, onObstacle);
         yield return 2;
-        Expect("left-click on an obstacle counts as ground and clears the selection", !_partyMember.SelectionRingVisible);
+        Expect("left-click on an obstacle counts as ground and clears the selection", !PartyMember.SelectionRingVisible);
 
-        Click(MouseButton.Left, start + new Vector2(0, -24));
+        ClickPartyMember(MouseButton.Left);
         yield return 2;
-        Expect("left-click selects them again", _partyMember.SelectionRingVisible);
+        Expect("left-click selects them again", PartyMember.SelectionRingVisible);
 
         Vector2 pastWall = TileCentre(PastWallTile);
         Expect("the straight line to the target crosses an obstacle (precondition)",
@@ -117,15 +84,15 @@ public partial class ObstacleCheck : SceneTree
         float walked = 0;
         Click(MouseButton.Right, pastWall);
         yield return 1;
-        for (int i = 0; i < 2400 && _partyMember.IsMoving; i++)
+        for (int i = 0; i < 2400 && PartyMember.IsMoving; i++)
         {
-            Vector2 before = _partyMember.GlobalPosition;
+            Vector2 before = PartyMember.GlobalPosition;
             yield return 1;
-            walked += before.DistanceTo(_partyMember.GlobalPosition);
+            walked += before.DistanceTo(PartyMember.GlobalPosition);
         }
 
-        Expect($"arrives past the wall (off by {_partyMember.GlobalPosition.DistanceTo(pastWall):0.0} px)",
-            !_partyMember.IsMoving && _partyMember.GlobalPosition.DistanceTo(pastWall) < ArriveTolerance);
+        Expect($"arrives past the wall (off by {PartyMember.GlobalPosition.DistanceTo(pastWall):0.0} px)",
+            !PartyMember.IsMoving && PartyMember.GlobalPosition.DistanceTo(pastWall) < ArriveTolerance);
         Expect($"walks round the wall ({walked:0} px walked, {start.DistanceTo(pastWall):0} px straight)",
             walked > start.DistanceTo(pastWall) * 1.2f);
         Expect($"never overlaps an obstacle on the way (closest {_closestToObstacle:0.0} px, feet radius {FeetRadius})",
@@ -137,18 +104,18 @@ public partial class ObstacleCheck : SceneTree
         _closestToObstacle = float.MaxValue;
         Click(MouseButton.Right, inside);
         yield return 1;
-        for (int i = 0; i < 2400 && _partyMember.IsMoving; i++)
+        for (int i = 0; i < 2400 && PartyMember.IsMoving; i++)
         {
             yield return 1;
         }
 
-        Vector2 stopped = _partyMember.GlobalPosition;
+        Vector2 stopped = PartyMember.GlobalPosition;
         Expect($"right-click inside an obstacle ends at the closest reachable point (off by {stopped.DistanceTo(closest):0.0} px)",
-            !_partyMember.IsMoving && stopped.DistanceTo(closest) < ArriveTolerance);
+            !PartyMember.IsMoving && stopped.DistanceTo(closest) < ArriveTolerance);
         Expect($"never overlaps an obstacle on the way (closest {_closestToObstacle:0.0} px)",
             _closestToObstacle >= FeetRadius - 0.5f);
         yield return 60;
-        Expect("stays still after stopping", _partyMember.GlobalPosition.DistanceTo(stopped) < 0.01f);
+        Expect("stays still after stopping", PartyMember.GlobalPosition.DistanceTo(stopped) < StillTolerance);
     }
 
     private bool IsObstacle(Vector2I tile) =>
@@ -204,25 +171,5 @@ public partial class ObstacleCheck : SceneTree
         }
 
         return rect ?? new Rect2();
-    }
-
-    private void Click(MouseButton button, Vector2 world)
-    {
-        Vector2 screen = Root.GetCanvasTransform() * world;
-        Root.PushInput(new InputEventMouseButton { ButtonIndex = button, Pressed = true, Position = screen }, true);
-        Root.PushInput(new InputEventMouseButton { ButtonIndex = button, Pressed = false, Position = screen }, true);
-    }
-
-    private void Expect(string name, bool ok)
-    {
-        if (ok)
-        {
-            GD.Print($"ok: {name}");
-        }
-        else
-        {
-            _failed = true;
-            GD.PushError($"ObstacleCheck: {name}: failed at {_partyMember.GlobalPosition}");
-        }
     }
 }

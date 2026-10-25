@@ -1,0 +1,105 @@
+using System.Collections.Generic;
+using Godot;
+
+namespace Crpg.Tools;
+
+/// <summary>
+/// Shared harness for the headless engine checks (SelectionCheck, MoveCheck, ObstacleCheck). Loads Main, waits for
+/// the zone and navigation map to settle, then runs the check's steps, pushing real clicks through the viewport.
+/// Prints "&lt;Check&gt;: PASSED" and exits 0, or prints ERROR lines and exits 1.
+/// </summary>
+public abstract partial class HeadlessCheck : SceneTree
+{
+    /// <summary>How close (px) counts as "arrived": the agent's target distance plus one physics step.</summary>
+    protected const float ArriveTolerance = 6f;
+
+    /// <summary>Distance (px) under which a party member counts as not having moved.</summary>
+    protected const float StillTolerance = 0.01f;
+
+    /// <summary>Physics frames to wait after loading Main, so the zone is loaded and the navigation map synced.</summary>
+    private const int SettleFrames = 5;
+
+    private const string PartyMemberPath = "Main/ZoneContainer/TestZone/PartyMember1";
+
+    /// <summary>Where to click, relative to the party member's feet, to hit them: the middle of the capsule sprite.</summary>
+    private static readonly Vector2 PartyMemberClickOffset = new(0, -24);
+
+    private IEnumerator<int> _steps = null!;
+    private int _wait;
+    private bool _failed;
+
+    /// <summary>The party member the checks drive. Set before the first step runs.</summary>
+    protected Character PartyMember { get; private set; } = null!;
+
+    public override void _Initialize()
+    {
+        Root.AddChild(GD.Load<PackedScene>("res://Main.tscn").Instantiate());
+        _steps = Steps();
+        _wait = SettleFrames;
+    }
+
+    public override bool _PhysicsProcess(double delta)
+    {
+        EachPhysicsFrame();
+        if (--_wait > 0)
+        {
+            return false;
+        }
+
+        if (_steps.MoveNext())
+        {
+            _wait = _steps.Current;
+        }
+        else
+        {
+            string name = GetType().Name;
+            GD.Print(_failed ? $"{name}: FAILED" : $"{name}: PASSED");
+            Quit(_failed ? 1 : 0);
+        }
+
+        return false;
+    }
+
+    /// <summary>The check, as steps. Each yield is the number of physics frames to wait before the next step.</summary>
+    protected abstract IEnumerator<int> Run();
+
+    /// <summary>Called on every physics frame, before the step runner; for checks that track something throughout.</summary>
+    protected virtual void EachPhysicsFrame()
+    {
+    }
+
+    /// <summary>Presses and releases a mouse button at a world point, through the viewport.</summary>
+    protected void Click(MouseButton button, Vector2 world)
+    {
+        Vector2 screen = Root.GetCanvasTransform() * world;
+        Root.PushInput(new InputEventMouseButton { ButtonIndex = button, Pressed = true, Position = screen }, true);
+        Root.PushInput(new InputEventMouseButton { ButtonIndex = button, Pressed = false, Position = screen }, true);
+    }
+
+    /// <summary>Clicks on the party member's capsule.</summary>
+    protected void ClickPartyMember(MouseButton button) =>
+        Click(button, PartyMember.GlobalPosition + PartyMemberClickOffset);
+
+    protected void Expect(string name, bool ok)
+    {
+        if (ok)
+        {
+            GD.Print($"ok: {name}");
+        }
+        else
+        {
+            _failed = true;
+            GD.PushError($"{GetType().Name}: {name}: failed at {PartyMember.GlobalPosition}");
+        }
+    }
+
+    private IEnumerator<int> Steps()
+    {
+        PartyMember = Root.GetNode<Character>(PartyMemberPath);
+        IEnumerator<int> run = Run();
+        while (run.MoveNext())
+        {
+            yield return run.Current;
+        }
+    }
+}
