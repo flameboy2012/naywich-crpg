@@ -13,9 +13,10 @@ namespace Crpg.Tools;
 public partial class BuildTestZone : SceneTree
 {
     /// <summary>
-    /// Zone is ZoneSizeInTiles x ZoneSizeInTiles tiles. 24x24 is 1536x768 px, inside 1920x1080 with margin.
+    /// Zone is ZoneSizeInTiles x ZoneSizeInTiles tiles. 48x48 is 3072x1536 px, about 2-3 screens of 1920x1080, so the
+    /// camera has somewhere to pan. It grew from 24x24 in place: tile (0, 0) and the M1.5 obstacles didn't move.
     /// </summary>
-    private const int ZoneSizeInTiles = 24;
+    private const int ZoneSizeInTiles = 48;
 
     private const string TileSetPath = "res://zones/test_tiles.tres";
     private const string ZonePath = "res://zones/TestZone.tscn";
@@ -26,14 +27,24 @@ public partial class BuildTestZone : SceneTree
     /// <summary>
     /// Obstacle layout, as tile rectangles (x, y, width, height). The party member starts at tile (8, 12):
     /// a long wall to their west, two blocks and an L to the east. Clear of the paths SelectionCheck and MoveCheck use.
+    /// The rest are in the area added at 48x48, so pathfinding is exercised there too.
     /// </summary>
     private static readonly Rect2I[] Obstacles =
     {
+        // M1.5 obstacles, at their original tile coordinates.
         new(5, 3, 1, 14),    // wall, tiles (5, 3) to (5, 16)
         new(16, 4, 3, 3),    // block, its middle (17, 5) is used by ObstacleCheck as an unreachable target
         new(14, 15, 3, 3),   // block
         new(19, 12, 3, 1),   // L, arm
         new(21, 13, 1, 2),   // L, leg
+
+        // Added with the 48x48 zone.
+        new(30, 6, 1, 12),   // wall, tiles (30, 6) to (30, 17)
+        new(36, 28, 4, 4),   // block
+        new(8, 32, 8, 1),    // wall, tiles (8, 32) to (15, 32)
+        new(26, 38, 3, 3),   // block
+        new(40, 10, 3, 1),   // L, arm
+        new(42, 11, 1, 3),   // L, leg
     };
 
     private Node2D _zone = null!;

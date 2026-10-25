@@ -6,7 +6,7 @@ namespace Crpg.Tools;
 
 /// <summary>
 /// Headless smoke check for obstacles: loads Main, checks the baked navigation mesh has holes at the obstacle
-/// tiles and the zone fits the static camera's view, then pushes real clicks through the viewport and watches the
+/// tiles, then pushes real clicks through the viewport and watches the
 /// party member walk round obstacles. Run from game/ after dotnet build:
 ///   godot --headless --path . --fixed-fps 60 --quit-after 3600 --script res://tools/ObstacleCheck.cs
 /// Prints "ObstacleCheck: PASSED" and exits 0, or prints ERROR lines and exits 1.
@@ -18,8 +18,6 @@ public partial class ObstacleCheck : HeadlessCheck
 
     /// <summary>The middle tile of an obstacle block, unreachable.</summary>
     private static readonly Vector2I InsideObstacleTile = new(17, 5);
-
-    private static readonly Vector2 ViewSize = new(1920, 1080);
 
     private TileMapLayer _ground = null!;
     private List<Vector2[]> _obstacles = null!;
@@ -51,10 +49,6 @@ public partial class ObstacleCheck : HeadlessCheck
         Expect($"zone has obstacle tiles ({obstacleTiles.Count})", obstacleTiles.Count > 0);
         Expect("every obstacle tile is a hole in the navigation mesh, with the feet-radius margin", obstacleTiles.All(tile =>
             DistanceToObstacles(NavigationServer2D.MapGetClosestPoint(map, TileCentre(tile))) >= PartyMember.FeetRadius - 0.5f));
-
-        Rect2 zoneOnScreen = ZoneScreenRect();
-        Expect($"whole zone fits the 1920x1080 view with the static camera ({zoneOnScreen})",
-            new Rect2(Vector2.Zero, ViewSize).Encloses(zoneOnScreen) && Root.GetVisibleRect().Size == ViewSize);
 
         Vector2 start = PartyMember.GlobalPosition;
         Vector2 onObstacle = TileCentre(obstacleTiles[0]);
@@ -151,21 +145,4 @@ public partial class ObstacleCheck : HeadlessCheck
 
     private static bool SegmentHitsPolygon(Vector2 a, Vector2 b, Vector2[] polygon) =>
         Geometry2D.IntersectPolylineWithPolygon(new[] { a, b }, polygon).Count > 0;
-
-    /// <summary>The bounding box of every used tile's diamond, in screen (viewport) pixels.</summary>
-    private Rect2 ZoneScreenRect()
-    {
-        Transform2D toScreen = Root.GetCanvasTransform();
-        Rect2? rect = null;
-        foreach (Vector2I tile in _ground.GetUsedCells())
-        {
-            foreach (Vector2 corner in TileDiamond(tile))
-            {
-                Vector2 onScreen = toScreen * corner;
-                rect = rect is { } soFar ? soFar.Expand(onScreen) : new Rect2(onScreen, Vector2.Zero);
-            }
-        }
-
-        return rect ?? new Rect2();
-    }
 }
