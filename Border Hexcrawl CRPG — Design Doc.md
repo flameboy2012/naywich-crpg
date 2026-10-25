@@ -344,13 +344,15 @@ Build in small, playable steps. Each milestone ends with something you can run a
 
 **M2 — Combat core**
 
-- [ ] `Rules` autoload with dice rolling and attack resolution, one seeded RNG (seed logged, `--seed N` to replay)
-- [ ] Classic party: fighter and cleric melee, rogue shortbow, wizard Fire Bolt cantrip on the same ranged attack code
-- [ ] One enemy type (SRD goblin) using `MonsterData`; four in the test zone, two melee and two ranged
-- [ ] Right-click enemy to attack; 6 s attack cooldown per character
-- [ ] Enemies attack the nearest party member inside their awareness radius
-- [ ] HP bars, down/dead, recovery at 1 HP at combat end, combat log
-- [ ] Space to pause; orders while paused
+- [x] `Rules` autoload with dice rolling and attack resolution, one seeded RNG (seed logged, `--seed N` to replay)
+- [x] Classic party: fighter and cleric melee, rogue shortbow, wizard Fire Bolt cantrip on the same ranged attack code
+- [x] One enemy type (SRD goblin) using `MonsterData`; four in the test zone, two melee and two ranged
+- [x] Right-click enemy to attack; 6 s attack cooldown per character
+- [x] Enemies attack the nearest party member inside their awareness radius; once aware, they stay aware until dead
+- [x] HP bars, down/dead, recovery at 1 HP at combat end, combat log in the bottom-right corner
+- [x] Space to pause; orders while paused
+- Combat speed is the project setting `crpg/combat/combat_speed` and scales both movement and attack cooldowns.
+- Play-test passed: melee and ranged attacks, hit flashes, downed party members unselectable, recovery at 1 HP and combat speed all worked. Ranged attacks feel odd with no projectiles; add projectiles later. The combat log moved from bottom left to bottom right.
 
 **M2.5 — Combat feel**
 
@@ -358,6 +360,7 @@ Build in small, playable steps. Each milestone ends with something you can run a
 - [ ] Floating combat text
 - [ ] Auto-pause options
 - [ ] Game over and reload
+- [ ] Portrait column labels and UI: each party member's name, HP and attack cooldown
 
 **M3 — Zone graph**
 
