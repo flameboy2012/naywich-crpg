@@ -73,22 +73,24 @@ A painted, hex-free region map that unlocks visited locations for fast travel, B
 
 ## Party control and movement
 
-Controls are identical in and out of combat: select units, then right- or left-click to order them.
+Controls are identical in and out of combat: left-click selects party members, right-click gives orders (BG1 style).
 
 **Selection**
 
 - Left-click a party member to select only them.
+- Left-click empty ground to clear the selection.
 - Shift-click to add or remove from the selection.
 - Left-drag to box-select party members inside the rectangle (screen space, projected for isometric).
 - Portrait column on the screen's side: click to select, shift-click to add, double-click to centre the camera.
-- Keys 1–6 select by portrait slot; Ctrl+A selects the whole party.
+- Keys 1–4 select by portrait slot (party cap is 4 in v1; the slot count is one constant); Ctrl+A selects the whole party.
 - Selected units show a ring under their feet; portraits highlight.
 
 **Orders**
 
-- Click ground: move selected units there. Multiple units spread into simple offset positions around the target so they don't stack.
-- Click enemy: selected units attack it (move into range, then attack).
-- Click NPC or object: walk to it, then interact (talk, open, use, pick up).
+- Right-click ground: move the selection there. Multiple party members spread into simple offset positions around the target so they don't stack.
+- Right-click enemy: the selection attacks it (move into range, then attack).
+- Right-click NPC or object: walk to it, then interact (talk, open, use, pick up).
+- Right-click with nothing selected does nothing.
 - A move marker briefly shows the destination.
 
 **Pathfinding**
@@ -96,6 +98,7 @@ Controls are identical in and out of combat: select units, then right- or left-c
 - Each zone has a NavigationRegion2D baked from its tilemap. Each character has a NavigationAgent2D.
 - Use agent avoidance so party members steer around each other.
 - Isometric art, but movement happens in world 2D coordinates; the tilemap's isometric layout handles projection.
+- Tiles are 64x32 pixels and one tile is 5 ft, so 5e distances convert directly (see `docs/adr/0001-isometric-tile-scale.md`).
 
 **Camera**
 
@@ -151,7 +154,7 @@ All game data lives in Godot Resources (.tres), so new monsters, weapons and zon
 
 **Rules code**
 
-- A single `Rules` autoload holds pure functions: `roll(dice_string)`, `ability_mod(score)`, `attack_roll(attacker, target)`, `damage_roll(attacker, crit)`.
+- Rules logic lives in the plain .NET library `Crpg.Core`, with no Godot dependency, and is tested with xUnit. It holds pure functions such as `Roll(diceString)`, `AbilityMod(score)`, `AttackRoll(attacker, target)` and `DamageRoll(attacker, crit)`. A thin `Rules` autoload exposes them to the game.
 - All randomness goes through one seeded RNG so fights can be reproduced when debugging.
 - Derived values (attack bonus, AC) are computed, never stored, so equipment changes just work.
 
@@ -249,7 +252,18 @@ Each outdoor arrow is one hex crossing at 3 hours; the camp-to-forest exit stays
 
 ## Technical architecture
 
-Godot 4.x, GDScript, 2D isometric TileMapLayer nodes, with a persistent `Main` scene that swaps zone scenes in and out.
+Godot 4.7 (.NET build), C#, 2D isometric TileMapLayer nodes, with a persistent `Main` scene that swaps zone scenes in and out. C# is a provisional choice, to be reviewed at the end of M1.5 (see `docs/adr/0002-csharp-over-gdscript.md`).
+
+**Solution layout**
+
+```text
+Crpg.sln
+game/                    ← Godot project (project.godot, its own .csproj)
+src/Crpg.Core/           ← pure rules logic, no Godot references
+tests/Crpg.Core.Tests/   ← xUnit tests for Crpg.Core
+```
+
+The Godot project references `Crpg.Core`. Godot-side code is play-tested by hand for now; add gdUnit4 only when scene-level tests are worth it.
 
 **Scene tree**
 
@@ -275,7 +289,7 @@ Main (persistent)
 
 **Character scene**
 
-`Character` (CharacterBody2D) with child nodes: Sprite/AnimatedSprite2D (8-direction isometric), NavigationAgent2D, SelectionRing, HealthBar, and a script holding a `CharacterStats` resource plus the AI state machine. Party members and monsters share this scene; a flag or controller component decides player vs AI.
+`Character` (CharacterBody2D) with child nodes: Sprite/AnimatedSprite2D (8-direction isometric), NavigationAgent2D, SelectionRing, HealthBar, and a script holding a `CharacterStats` resource plus the AI state machine. Party members and monsters share this scene. Movement (`MoveTo(position)`) lives on `Character`; a swappable control component (player control now, AI control later) decides who issues the orders.
 
 **Zone scene**
 
@@ -290,7 +304,7 @@ Each zone: TileMapLayers (ground, objects), NavigationRegion2D, `EntryPoint` mar
 **Suggested folders**
 
 ```text
-res://
+game/  (res://)
   autoload/   characters/   zones/   data/   ui/   art/
   data/weapons/  data/monsters/  data/zones/  data/factions/  data/quests/
 ```
@@ -301,11 +315,21 @@ Build in small, playable steps. Each milestone ends with something you can run a
 
 **M1 — Movement prototype (start here)**
 
-- [ ] One isometric test zone with a TileMapLayer and baked navigation
-- [ ] Two party characters; click to select, shift-click, box select
-- [ ] Click-to-move with pathfinding and avoidance
-- [ ] Portrait column with click to select
-- [ ] Camera pan and clamp
+- [ ] Solution skeleton: Godot project, `Crpg.Core`, xUnit tests, using the final `Main` scene tree
+- [ ] One isometric test zone with obstacles, a TileMapLayer and baked navigation, sized to fit a 1920x1080 screen
+- [ ] One party member; left-click to select, left-click empty ground to clear
+- [ ] Right-click to move with pathfinding
+- [ ] Static camera
+
+**M1.5 — Party control**
+
+- [ ] Second party member; shift-click and box select
+- [ ] Agent avoidance and group spread offsets
+- [ ] Move marker
+- [ ] Portrait column: click, shift-click, double-click to centre
+- [ ] Keys 1–4 and Ctrl+A
+- [ ] Camera pan (edges, WASD/arrows, middle-mouse) and clamp
+- [ ] Review the C# vs GDScript decision (ADR 0002)
 
 **M2 — Combat prototype**
 
@@ -343,7 +367,7 @@ These don't block M1–M2 but should be settled before M5.
 - **Zone scale:** how many screens per outdoor zone; which of the 100 hexes become full zones vs merged or skipped?
 - **Party transitions:** must all members gather at an exit, or does reaching it with one member move everyone?
 - **Death:** keep "down, recover after combat", or add 5e death saves and resurrection?
-- **Art source:** commissioned, asset packs, or self-made? This sets the isometric tile size (e.g. 64x32) early.
+- **Art source:** commissioned, asset packs, or self-made? Must fit the fixed 64x32 tile size (ADR 0001).
 - **Rulesets and licensing:** if 5e text or monsters are used verbatim, stick to the SRD and include its attribution; avoid D&D trademarks.
 
 **Deferred features (rough priority)**
