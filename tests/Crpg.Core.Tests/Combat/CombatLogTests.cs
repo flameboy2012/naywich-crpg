@@ -46,7 +46,7 @@ public class CombatLogTests
     }
 
     [Fact]
-    public void A_killing_hit_shows_the_roll_the_damage_and_the_dead_target()
+    public void A_hit_that_takes_an_enemy_to_0_hp_shows_the_roll_the_damage_and_the_dead_target()
     {
         Assert.Equal("Fighter → Goblin 1: 14+4=18 vs AC 15 hit, 1d8+2=7 slashing (Goblin 1: 0/7, dead)",
             FighterAttacksGoblin(7, 14, 5));

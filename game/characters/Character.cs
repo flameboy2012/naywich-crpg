@@ -43,8 +43,11 @@ public partial class Character : CharacterBody2D
     /// <summary>The body colour at the start of a hit flash: an over-bright pulse of the tint.</summary>
     private static readonly Color HitFlashColor = new(2.2f, 2.2f, 2.2f, 1f);
 
-    /// <summary>The body colour of a dead enemy or a downed party member.</summary>
-    private static readonly Color DeadColour = new(0.42f, 0.42f, 0.42f, 1f);
+    /// <summary>The body colour of a dead enemy.</summary>
+    private static readonly Color DeadColor = new(0.42f, 0.42f, 0.42f, 1f);
+
+    /// <summary>The body colour of a downed party member.</summary>
+    private static readonly Color DownColor = new(0.42f, 0.42f, 0.42f, 1f);
 
     /// <summary>How far (radians) a downed party member's body turns to lie on the ground.</summary>
     private const float LyingRotation = Mathf.Pi / 2;
@@ -401,7 +404,7 @@ public partial class Character : CharacterBody2D
     }
 
     /// <summary>The body colour between hit flashes: grey when dead or down, else the tint.</summary>
-    private Color RestingColor => IsDead || IsDown ? DeadColour : Tint;
+    private Color RestingColor => IsDead ? DeadColor : IsDown ? DownColor : Tint;
 
     /// <summary>
     /// A party member at 0 HP: grey and lying where they fell, no longer steered around, and no longer acting on any
@@ -410,7 +413,7 @@ public partial class Character : CharacterBody2D
     private void GoDown()
     {
         IsDown = true;
-        _sprite.Modulate = DeadColour;
+        _sprite.Modulate = DownColor;
         _sprite.Rotation = LyingRotation;
         _clickArea.Rotation = LyingRotation;
         _agent.AvoidanceEnabled = false;
@@ -445,7 +448,7 @@ public partial class Character : CharacterBody2D
     private void Die()
     {
         IsDead = true;
-        _sprite.Modulate = DeadColour;
+        _sprite.Modulate = DeadColor;
         _clickArea.CollisionLayer = 0;
         _agent.AvoidanceEnabled = false;
         _targetRings.Clear();

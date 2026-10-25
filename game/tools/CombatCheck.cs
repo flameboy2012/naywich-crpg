@@ -21,7 +21,7 @@ namespace Crpg.Tools;
 /// the shortbow goblin shoots from where it stands, and every attack writes a log line and shrinks the fighter's HP bar.
 /// Then down and getting up: the goblins take the idle fighter to 0 HP. The fighter goes down, drops out of the
 /// selection, greys out with their portrait, and can't be selected by click, shift-click, box select, portrait, number
-/// key or Ctrl+A; the goblins switch to the nearest party member still up. The rest of the party kills both goblins,
+/// key or Ctrl+A; the goblins switch to the nearest party member still up. Both goblins end dead at the party's hands,
 /// and at combat end the fighter gets up at 1 HP and can be selected again. Defeat is on the play-test list.
 /// Run from game/ after dotnet build, with the seed:
 ///   godot --headless --path . --fixed-fps 60 --quit-after 6000 --script res://tools/CombatCheck.cs --seed 1
@@ -31,9 +31,10 @@ public partial class CombatCheck : HeadlessCheck
 {
     /// <summary>
     /// The seed the documented command passes. The fights depend on its rolls. Melee: four attacks, three misses then
-    /// the fighter's killing hit, long enough for the cooldown cases. Ranged: seven attacks, with misses, Fire Bolt
-    /// hits and a shortbow natural 20 crit for the kill, with Goblin 2 alive until after it walks away. Waking: two
-    /// goblin hits take the fighter down, and the cleric, rogue and wizard then kill both goblins with nobody else down.
+    /// the fighter's hit that leaves the goblin dead, long enough for the cooldown cases. Ranged: seven attacks, with
+    /// misses, Fire Bolt hits and a shortbow natural 20 crit that leaves Goblin 2 dead, with it alive until after it
+    /// walks away. Waking: two goblin hits take the fighter down, and the cleric, rogue and wizard then attack until
+    /// both goblins are dead, with nobody else down.
     /// </summary>
     private const int ExpectedSeed = 1;
 
@@ -267,7 +268,8 @@ public partial class CombatCheck : HeadlessCheck
             yield return 1;
         }
 
-        Expect($"the fighter and cleric kill the goblin ({_attacks.Count} attacks)", _goblin.IsDead && _goblin.Hp == 0);
+        Expect($"the fighter and cleric attack until the goblin is dead ({_attacks.Count} attacks)",
+            _goblin.IsDead && _goblin.Hp == 0);
         CheckAttackLines();
         CheckCooldowns();
         Expect($"every hit flashes the goblin ({_hitsFlashed} of {_hitsSeen})", _hitsSeen > 0 && _hitsFlashed == _hitsSeen);
@@ -420,15 +422,18 @@ public partial class CombatCheck : HeadlessCheck
         Expect($"the fighter's HP bar shrinks ({Fighter.HpBarFraction:0.00})", Fighter.HpBarFraction < 1f);
     }
 
-    /// <summary>How long the check waits for the fighter to go down, and for the rest of the party to kill a goblin.</summary>
+    /// <summary>
+    /// How long the check waits for the fighter to go down, and for the rest of the party to leave a goblin dead.
+    /// </summary>
     private const int DownFrames = 2400;
 
     /// <summary>
     /// Down and getting up. The fighter stands idle among the two waking goblins until they take them to 0 HP. The
     /// fighter goes down: they drop out of the selection, their body and portrait grey out, the goblins switch to the
     /// nearest party member still up and never attack the fighter again, and a click, shift-click, box select,
-    /// portrait click, number key or Ctrl+A can't select them. Then Ctrl+A selects the rest of the party, who kill both
-    /// goblins. At combat end the fighter gets up at 1 HP, with their colour and portrait back, and can be selected.
+    /// portrait click, number key or Ctrl+A can't select them. Then Ctrl+A selects the rest of the party, who attack
+    /// until both goblins are dead. At combat end the fighter gets up at 1 HP, with their colour and portrait back,
+    /// and can be selected.
     /// </summary>
     private IEnumerable<int> DownAndGetUp()
     {
@@ -491,7 +496,7 @@ public partial class CombatCheck : HeadlessCheck
         Expect("Ctrl+A selects the party members still up, not the downed fighter",
             !Fighter.SelectionRingVisible && up.All(partyMember => partyMember.SelectionRingVisible == !partyMember.IsDown));
 
-        // The rest of the party kills both goblins.
+        // The rest of the party attacks until both goblins are dead.
         foreach (Character goblin in _wakeGoblins)
         {
             for (int i = 0; i < DownFrames && !goblin.IsDead; i++)
@@ -509,7 +514,7 @@ public partial class CombatCheck : HeadlessCheck
                 yield return 1;
             }
 
-            Expect($"the rest of the party kills {goblin.DisplayName} (needs the seed)", goblin.IsDead);
+            Expect($"the rest of the party leaves {goblin.DisplayName} dead (needs the seed)", goblin.IsDead);
         }
 
         Expect("no goblin attacks the downed fighter", _downLines.All(attack =>
@@ -654,7 +659,8 @@ public partial class CombatCheck : HeadlessCheck
         }
 
         _rangedPhase = false;
-        Expect($"the rogue and wizard kill Goblin 2 ({_rangedAttacks.Count} attacks)", _rangedGoblin.IsDead);
+        Expect($"the rogue and wizard attack until Goblin 2 is dead ({_rangedAttacks.Count} attacks)",
+            _rangedGoblin.IsDead);
         float reach = MeleeReach(Rogue, _rangedGoblin);
         Expect($"the ranged attackers never come within melee reach (closest {_closestRanged:0} px, reach {reach:0} px)",
             _closestRanged > reach);
@@ -704,7 +710,7 @@ public partial class CombatCheck : HeadlessCheck
             Regex.IsMatch(match.Groups["damage"].Value, @"^\d+d6\+2=\d+ piercing$")));
         Expect("Fire Bolt damage adds no ability mod: 1d10 fire", boltHits.All(match =>
             Regex.IsMatch(match.Groups["damage"].Value, @"^\d+d10=\d+ fire$")));
-        Expect("only the killing blow shows Goblin 2 dead",
+        Expect("only the last attack shows Goblin 2 dead",
             lines.Count(line => line.EndsWith(", dead)")) == 1 && lines[^1].EndsWith("(Goblin 2: 0/7, dead)"));
     }
 
@@ -773,8 +779,8 @@ public partial class CombatCheck : HeadlessCheck
         Expect($"every attack writes one line in the agreed format ({string.Join(" | ", bad)})",
             _attacks.Count > 0 && bad.Count == 0);
         string last = _attacks.Count > 0 ? _attacks[^1].Line : "";
-        Expect($"the killing blow's line shows the goblin dead ({last})", last.EndsWith("(Goblin 1: 0/7, dead)"));
-        Expect("only the killing blow shows the goblin dead",
+        Expect($"the last attack's line shows the goblin dead ({last})", last.EndsWith("(Goblin 1: 0/7, dead)"));
+        Expect("only the last attack shows the goblin dead",
             _attacks.Count(attack => attack.Line.EndsWith(", dead)")) == 1);
     }
 
