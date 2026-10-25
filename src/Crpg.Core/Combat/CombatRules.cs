@@ -59,6 +59,26 @@ public sealed class CombatRules(IDiceRoller dice)
         return new EnemyTargetPick(IsAware: true, nearest);
     }
 
+    /// <summary>The HP a downed party member gets up with at combat end.</summary>
+    public const int GetUpHp = 1;
+
+    /// <summary>
+    /// Where combat stands, given every enemy in the zone and whether each party member is down. Every party member
+    /// down is defeat. Otherwise combat has ended when no living enemy is aware of the party.
+    /// </summary>
+    public static CombatState AssessCombat(IEnumerable<EnemyAwareness> enemies, IReadOnlyCollection<bool> partyMembersDown)
+    {
+        if (partyMembersDown.Count > 0 && partyMembersDown.All(isDown => isDown))
+        {
+            return CombatState.Defeat;
+        }
+
+        return enemies.Any(enemy => !enemy.IsDead && enemy.IsAware) ? CombatState.Fighting : CombatState.Ended;
+    }
+
+    /// <summary>A party member's HP after combat end: a downed party member (0 HP) gets up at 1 HP; others keep theirs.</summary>
+    public static int HpAtCombatEnd(int hp) => hp > 0 ? hp : GetUpHp;
+
     /// <summary>Rolls the dice and sums them.</summary>
     public int Roll(Dice toRoll)
     {
