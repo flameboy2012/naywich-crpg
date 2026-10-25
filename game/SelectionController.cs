@@ -38,9 +38,8 @@ public partial class SelectionController : Node
         Vector2 world = GetViewport().GetCanvasTransform().AffineInverse() * mouse.Position;
         List<PlayerControl> partyMembers = PartyMembers();
         ClickTarget target = PartyMemberAt(world, partyMembers) is { } hit
-            ? new ClickTarget.PartyMember(hit.PartyMemberId,
-                new WorldPosition(hit.Character.GlobalPosition.X, hit.Character.GlobalPosition.Y))
-            : new ClickTarget.Ground(new WorldPosition(world.X, world.Y));
+            ? new ClickTarget.PartyMember(hit.PartyMemberId, hit.Character.GlobalPosition.ToWorldPosition())
+            : new ClickTarget.Ground(world.ToWorldPosition());
 
         ClickResult result = _model.Click(new ClickEvent(button.Value, target));
         Apply(result, partyMembers);
@@ -84,7 +83,7 @@ public partial class SelectionController : Node
             if (order is MoveOrder move
                 && partyMembers.FirstOrDefault(p => p.PartyMemberId == move.PartyMember) is { } partyMember)
             {
-                partyMember.Character.MoveTo(new Vector2(move.Destination.X, move.Destination.Y));
+                partyMember.Character.MoveTo(move.Destination.ToVector2());
             }
         }
     }
