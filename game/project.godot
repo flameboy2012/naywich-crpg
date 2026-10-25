@@ -24,3 +24,7 @@ window/stretch/mode="canvas_items"
 
 project/assembly_name="Crpg"
 project/solution_directory="../"
+
+[rendering]
+
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)

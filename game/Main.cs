@@ -1,3 +1,4 @@
+using System.Linq;
 using Godot;
 
 namespace Crpg;
@@ -14,7 +15,22 @@ public partial class Main : Node2D
     public override void _Ready()
     {
         Node2D zone = LoadZone(TestZonePath);
-        CentreCameraOn(zone.GetNode<TileMapLayer>("NavigationRegion2D/Ground"));
+        var cameraRig = GetNode<CameraRig>("CameraRig");
+        cameraRig.SetZone(zone.GetNode<TileMapLayer>("NavigationRegion2D/Ground"));
+        cameraRig.CentreOn(PartyCentre(zone));
+    }
+
+    /// <summary>The average position of the party members in a loaded zone.</summary>
+    private Vector2 PartyCentre(Node2D zone)
+    {
+        var positions = GetTree().GetNodesInGroup(PlayerControl.PartyMembersGroup)
+            .Select(control => control.GetParent<Node2D>())
+            .Where(partyMember => partyMember.GetParent() == zone)
+            .Select(partyMember => partyMember.GlobalPosition)
+            .ToList();
+        return positions.Count == 0
+            ? zone.GlobalPosition
+            : positions.Aggregate(Vector2.Zero, (sum, position) => sum + position) / positions.Count;
     }
 
     /// <summary>
@@ -42,12 +58,5 @@ public partial class Main : Node2D
         }
 
         return zone;
-    }
-
-    private void CentreCameraOn(TileMapLayer ground)
-    {
-        Rect2I used = ground.GetUsedRect();
-        Vector2 centre = ground.ToGlobal(ground.MapToLocal(used.Position + used.Size / 2));
-        GetNode<Camera2D>("CameraRig/Camera2D").GlobalPosition = centre;
     }
 }

@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://Main.cs" id="1"]
 [ext_resource type="PackedScene" path="res://characters/Character.tscn" id="2_char"]
 [ext_resource type="Script" path="res://SelectionController.cs" id="3_sel"]
+[ext_resource type="Script" path="res://CameraRig.cs" id="4_cam"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1")
@@ -32,6 +33,7 @@ position = Vector2(-96, 400)
 Tint = Color(0.2, 0.8, 0.8, 1)
 
 [node name="CameraRig" type="Node2D" parent="."]
+script = ExtResource("4_cam")
 
 [node name="Camera2D" type="Camera2D" parent="CameraRig"]
 
