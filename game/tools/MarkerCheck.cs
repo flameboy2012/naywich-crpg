@@ -7,7 +7,8 @@ namespace Crpg.Tools;
 /// <summary>
 /// Headless check for move markers: loads Main, pushes real clicks through the viewport and checks the markers each
 /// right-click shows: one per order, at each party member's navigation path end, in their tint, gone after the fade,
-/// and replaced by the next right-click. Run from game/ after dotnet build:
+/// and replaced by the next right-click. Last, an attack order clears the attacker's earlier move marker. Run from
+/// game/ after dotnet build:
 ///   godot --headless --path . --fixed-fps 60 --quit-after 1200 --script res://tools/MarkerCheck.cs
 /// Prints "MarkerCheck: PASSED" and exits 0, or prints ERROR lines and exits 1.
 /// </summary>
@@ -78,6 +79,23 @@ public partial class MarkerCheck : HeadlessCheck
 
         yield return FadeFrames;
         Expect("every marker is gone after the fade time", Markers.Count == 0);
+
+        // An attack order replaces the attacker's move marker: none is left where the earlier move would have ended.
+        var camera = Root.GetNode<CameraRig>("Main/CameraRig");
+        camera.CentreOn(PartyMember.GlobalPosition);
+        yield return 2;
+        ClickPartyMember(MouseButton.Left);
+        yield return 2;
+        Click(MouseButton.Right, PartyMember.GlobalPosition + new Vector2(120, 40));
+        yield return 2;
+        Expect($"a move order before the attack shows its marker ({Markers.Count})", Markers.Count == 1);
+        var goblin = Zone.GetNode<Character>("Goblin1");
+        camera.CentreOn(goblin.GlobalPosition);
+        yield return 2;
+        Click(MouseButton.Right, goblin.GlobalPosition + PartyMemberClickOffset);
+        yield return 2;
+        Expect("the right-click on the goblin is an attack order", PartyMember.AttackTarget == goblin);
+        Expect($"an attack order clears the attacker's move marker ({Markers.Count} left)", Markers.Count == 0);
     }
 
     /// <summary>Exactly one marker per party member, each at that party member's path end and in their tint.</summary>

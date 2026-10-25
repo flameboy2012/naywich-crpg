@@ -343,13 +343,17 @@ public partial class SelectionController : Node
             }
         }
 
-        if (moved.Count > 0)
+        // Any order replaces the markers, so an attack order leaves no marker from an earlier move order.
+        if (result.Orders.Count > 0)
         {
             ShowMoveMarkers(moved);
         }
     }
 
-    /// <summary>Replaces every move marker with one per moved party member, at the real end of their path.</summary>
+    /// <summary>
+    /// Replaces every move marker with one per moved party member, at the real end of their path. With nobody moved
+    /// (an attack order), it only clears them.
+    /// </summary>
     private void ShowMoveMarkers(IEnumerable<PlayerControl> moved)
     {
         foreach (Node old in MoveMarkers.GetChildren())
