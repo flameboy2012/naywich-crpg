@@ -30,6 +30,35 @@ public sealed class CombatRules(IDiceRoller dice)
         attackerFeet.DistanceTo(targetFeet)
         <= attack.RangeTiles * TileScale.GridStepLength + attackerFeetRadius + targetFeetRadius;
 
+    /// <summary>
+    /// An enemy's target pick. It keeps its current target while that party member is up, however far away they are
+    /// (no leash). Otherwise it picks the nearest party member who is not down and whose feet are within the awareness
+    /// radius (in tiles of one grid-step length) of the enemy's feet, or nobody.
+    /// </summary>
+    public static PartyMemberId? PickEnemyTarget(WorldPosition enemyFeet, int awarenessRadiusTiles,
+        PartyMemberId? current, IReadOnlyList<TargetCandidate> partyMembers)
+    {
+        if (current is { } kept && partyMembers.Any(candidate => candidate.Id == kept && !candidate.IsDown))
+        {
+            return kept;
+        }
+
+        float radius = awarenessRadiusTiles * TileScale.GridStepLength;
+        PartyMemberId? nearest = null;
+        float nearestDistance = float.MaxValue;
+        foreach (TargetCandidate candidate in partyMembers)
+        {
+            float distance = enemyFeet.DistanceTo(candidate.Feet);
+            if (!candidate.IsDown && distance <= radius && distance < nearestDistance)
+            {
+                nearest = candidate.Id;
+                nearestDistance = distance;
+            }
+        }
+
+        return nearest;
+    }
+
     /// <summary>Rolls the dice and sums them.</summary>
     public int Roll(Dice toRoll)
     {
