@@ -32,9 +32,6 @@ public partial class WeaponData : Resource
     [Export(PropertyHint.Range, "1,60,1,or_greater")]
     public int RangeTiles { get; set; } = 1;
 
-    [Export]
-    public AttackReach Reach { get; set; } = AttackReach.Melee;
-
     public Attack ToCore() =>
-        new(Name, Dice.Parse(DamageDice), DamageType, Ability, AddsAbilityModifierToDamage, RangeTiles, Reach);
+        new(Name, Dice.Parse(DamageDice), DamageType, Ability, AddsAbilityModifierToDamage, RangeTiles);
 }

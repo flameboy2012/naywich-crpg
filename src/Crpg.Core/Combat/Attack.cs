@@ -9,13 +9,6 @@ public enum AttackAbility
     Intelligence,
 }
 
-/// <summary>Whether an attack is made in melee reach or from range.</summary>
-public enum AttackReach
-{
-    Melee,
-    Ranged,
-}
-
 /// <summary>
 /// One way a character can attack, such as a weapon or a cantrip. The Core record for the game's WeaponData Resource.
 /// </summary>
@@ -27,5 +20,4 @@ public sealed record Attack(
     string DamageType,
     AttackAbility Ability,
     bool AddsAbilityModifierToDamage,
-    int RangeTiles,
-    AttackReach Reach);
+    int RangeTiles);

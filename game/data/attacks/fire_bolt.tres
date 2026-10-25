@@ -10,4 +10,3 @@ DamageType = "fire"
 Ability = 3
 AddsAbilityModifierToDamage = false
 RangeTiles = 24
-Reach = 1

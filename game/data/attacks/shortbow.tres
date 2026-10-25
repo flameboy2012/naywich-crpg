@@ -10,4 +10,3 @@ DamageType = "piercing"
 Ability = 1
 AddsAbilityModifierToDamage = true
 RangeTiles = 16
-Reach = 1

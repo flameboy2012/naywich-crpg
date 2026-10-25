@@ -10,4 +10,3 @@ DamageType = "bludgeoning"
 Ability = 0
 AddsAbilityModifierToDamage = true
 RangeTiles = 1
-Reach = 0

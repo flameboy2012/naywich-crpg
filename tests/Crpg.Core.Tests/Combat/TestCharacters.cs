@@ -11,19 +11,19 @@ internal static class TestCharacters
 
     public static readonly Attack Longsword =
         new("Longsword", Dice.Parse("1d8"), "slashing", AttackAbility.Strength, AddsAbilityModifierToDamage: true,
-            RangeTiles: 1, AttackReach.Melee);
+            RangeTiles: 1);
 
     public static readonly Attack Shortbow =
         new("Shortbow", Dice.Parse("1d6"), "piercing", AttackAbility.Dexterity, AddsAbilityModifierToDamage: true,
-            RangeTiles: 16, AttackReach.Ranged);
+            RangeTiles: 16);
 
     public static readonly Attack FireBolt =
         new("Fire Bolt", Dice.Parse("1d10"), "fire", AttackAbility.Intelligence, AddsAbilityModifierToDamage: false,
-            RangeTiles: 24, AttackReach.Ranged);
+            RangeTiles: 24);
 
     public static readonly Attack Scimitar =
         new("Scimitar", Dice.Parse("1d6"), "slashing", AttackAbility.Finesse, AddsAbilityModifierToDamage: true,
-            RangeTiles: 1, AttackReach.Melee);
+            RangeTiles: 1);
 
     public static Stats Fighter() =>
         new("Fighter", new AbilityScores(15, 13, 14, 8, 12, 10), MaxHp: 12, SpeedFeet: 30, ProficiencyBonus: 2,
