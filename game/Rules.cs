@@ -21,7 +21,7 @@ public partial class Rules : Node
     public CombatRules Combat { get; private set; } = null!;
 
     /// <summary>
-    /// The global combat speed (ADR 0003): attack cooldowns run this many times faster than real time. Provisional
+    /// The global combat speed (ADR 0003): attack cooldowns and movement run this many times faster than real time. Provisional
     /// until the M2 play-test.
     /// </summary>
     public float CombatSpeed { get; set; } = CombatRules.NormalCombatSpeed;

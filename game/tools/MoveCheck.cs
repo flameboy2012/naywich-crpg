@@ -38,6 +38,16 @@ public partial class MoveCheck : HeadlessCheck
             Mathf.Abs(walked - Character.TileLength) < Character.TileLength * 0.05f);
         Expect("walks towards the clicked point", PartyMember.GlobalPosition.DistanceTo(first) < from.DistanceTo(first));
 
+        // ADR 0003: the global combat speed scales movement as well as the attack cooldown.
+        var rules = Root.GetNode<Rules>(Rules.Path);
+        rules.CombatSpeed = 2f;
+        from = PartyMember.GlobalPosition;
+        yield return 30;
+        walked = PartyMember.GlobalPosition.DistanceTo(from);
+        rules.CombatSpeed = Core.Combat.CombatRules.NormalCombatSpeed;
+        Expect($"walks one tile in half a second at double combat speed ({walked:0.0} px in 0.5 s)",
+            Mathf.Abs(walked - Character.TileLength) < Character.TileLength * 0.05f);
+
         Click(MouseButton.Right, second);
         yield return 2;
         Expect("ring stays after right-click", PartyMember.SelectionRingVisible);

@@ -64,13 +64,16 @@ public partial class Character : CharacterBody2D
     public float FeetRadius => ((CircleShape2D)GetNode<CollisionShape2D>("CollisionShape2D").Shape).Radius;
 
     /// <summary>
-    /// Movement speed in tiles per second. 5e 30 ft per 6-second round = 1 tile per second (ADR 0001).
+    /// Movement speed in tiles per second at normal combat speed. 5e 30 ft per 6-second round = 1 tile per second (ADR 0001).
     /// Set from <see cref="CharacterStats"/> on ready; tune the speed there.
     /// </summary>
     [Export(PropertyHint.Range, "0.1,10,0.05,or_greater")]
     public float SpeedTilesPerSecond { get; set; } = 1f;
 
-    public float SpeedPixelsPerSecond => SpeedTilesPerSecond * TileLength;
+    /// <summary>Walking speed in world pixels per real second, scaled by the global combat speed (ADR 0003).</summary>
+    public float SpeedPixelsPerSecond => CombatRules.MoveSpeedPixelsPerSecond(SpeedTilesPerSecond, CombatSpeed);
+
+    private float CombatSpeed => _rules?.CombatSpeed ?? CombatRules.NormalCombatSpeed;
 
     /// <summary>
     /// How close to the destination, in tiles, a party member that has stopped making progress must be for the move to
@@ -262,7 +265,7 @@ public partial class Character : CharacterBody2D
     // Physics processing obeys ProcessMode, so pausing the tree (PauseManager) stops movement and attack cooldowns.
     public override void _PhysicsProcess(double delta)
     {
-        _cooldown.Tick((float)delta, _rules?.CombatSpeed ?? CombatRules.NormalCombatSpeed);
+        _cooldown.Tick((float)delta, CombatSpeed);
         if (AttackTarget is not null)
         {
             UpdateAttack(AttackTarget);
@@ -283,6 +286,7 @@ public partial class Character : CharacterBody2D
 
         // Avoidance turns this into a safe velocity and hands it back through VelocityComputed, which moves the body.
         Vector2 next = _agent.GetNextPathPosition();
+        _agent.MaxSpeed = SpeedPixelsPerSecond;   // combat speed may change mid-move
         _agent.Velocity = GlobalPosition.DirectionTo(next) * SpeedPixelsPerSecond;
     }
 

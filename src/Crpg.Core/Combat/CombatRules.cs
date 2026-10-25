@@ -11,8 +11,15 @@ public sealed class CombatRules(IDiceRoller dice)
     public const int NaturalTwenty = 20;
     public const int NaturalOne = 1;
 
-    /// <summary>The default global combat speed (ADR 0003): attack cooldowns run in plain real seconds.</summary>
+    /// <summary>The default global combat speed (ADR 0003): attack cooldowns and movement run in plain real seconds.</summary>
     public const float NormalCombatSpeed = 1f;
+
+    /// <summary>
+    /// Walking speed in world pixels per real second (ADR 0003): the speed in tiles per second times the grid-step
+    /// length, scaled by the global combat speed like the attack cooldown.
+    /// </summary>
+    public static float MoveSpeedPixelsPerSecond(float speedTilesPerSecond, float combatSpeed) =>
+        speedTilesPerSecond * TileScale.GridStepLength * combatSpeed;
 
     /// <summary>
     /// True when the target is within the attack's range: the distance between the two characters' feet is at most the
