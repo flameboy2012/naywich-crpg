@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Crpg.Core.Selection;
@@ -50,6 +51,15 @@ public partial class SelectionController : Node
     /// <summary>True while the box select rectangle is drawn on screen.</summary>
     public bool BoxVisible => _box.Visible;
 
+    /// <summary>The party members in portrait slot order: the first is slot 1. Set in _Ready.</summary>
+    public IReadOnlyList<PlayerControl> PortraitSlots { get; private set; } = [];
+
+    /// <summary>
+    /// Raised with the new selection after every selection change, however it was made, from the same result that sets
+    /// the rings.
+    /// </summary>
+    public event Action<IReadOnlySet<PartyMemberId>>? SelectionChanged;
+
     public override void _Ready()
     {
         var style = new StyleBoxFlat
@@ -66,9 +76,10 @@ public partial class SelectionController : Node
 
         // Main moves the party members into the zone in its own _Ready, which runs after this one, so the Party node
         // still holds them here.
-        _model = new SelectionModel(Party.GetChildren()
-            .Select(partyMember => partyMember.GetNode<PlayerControl>("PlayerControl").PartyMemberId)
-            .ToArray());
+        PortraitSlots = Party.GetChildren()
+            .Select(partyMember => partyMember.GetNode<PlayerControl>("PlayerControl"))
+            .ToArray();
+        _model = new SelectionModel(PortraitSlots.Select(partyMember => partyMember.PartyMemberId).ToArray());
 
         // Every party member has entered the tree (and joined the group) before any node's _Ready.
         foreach (PlayerControl partyMember in PartyMembers().Values)
@@ -79,7 +90,7 @@ public partial class SelectionController : Node
 
     /// <summary>
     /// Selects the party member in a portrait slot (1 to 4), or with shift toggles them. A slot with no party member
-    /// changes nothing. Shared by the number keys and, later, the portraits.
+    /// changes nothing. Shared by the number keys and the portraits.
     /// </summary>
     public void SelectSlot(int slot, bool shift) =>
         Apply(_model.SlotSelect(new SlotSelectEvent(slot, shift)), PartyMembers());
@@ -244,6 +255,8 @@ public partial class SelectionController : Node
         {
             partyMember.ShowSelected(result.Selection.Contains(id));
         }
+
+        SelectionChanged?.Invoke(result.Selection);
 
         List<PlayerControl> moved = new();
         foreach (Order order in result.Orders)
