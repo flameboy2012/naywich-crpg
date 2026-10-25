@@ -538,4 +538,79 @@ public class SelectionModelTests
         Assert.Empty(plain.Orders);
         Assert.Empty(shifted.Orders);
     }
+
+    [Fact]
+    public void A_party_member_who_goes_down_drops_out_of_the_selection()
+    {
+        SelectionModel model = PartyOfThree(Aldric, Brenna);
+
+        ClickResult result = model.GoDown(Aldric);
+
+        Assert.Equal(new[] { Brenna }, result.Selection);
+        Assert.Equal(new[] { Brenna }, model.Selection);
+        Assert.Empty(result.Orders);
+    }
+
+    [Fact]
+    public void A_click_or_shift_click_on_a_downed_party_member_changes_nothing()
+    {
+        SelectionModel model = PartyOfThree(Brenna);
+        model.GoDown(Aldric);
+
+        ClickResult click = model.Click(LeftClickOn(Aldric));
+        ClickResult shiftClick = model.Click(ShiftClickOn(Aldric));
+
+        Assert.Equal(new[] { Brenna }, click.Selection);
+        Assert.Equal(new[] { Brenna }, shiftClick.Selection);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Box_select_leaves_out_a_downed_party_member_inside_the_box(bool shift)
+    {
+        SelectionModel model = PartyOfThree();
+        model.GoDown(Aldric);
+
+        ClickResult result = model.BoxSelect(new BoxSelectEvent(new[] { Aldric, Brenna }, shift));
+
+        Assert.Equal(new[] { Brenna }, result.Selection);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Slot_select_or_toggle_on_a_downed_party_members_slot_changes_nothing(bool shift)
+    {
+        SelectionModel model = PartyOfThree(Brenna);
+        model.GoDown(Aldric);
+
+        ClickResult result = model.SlotSelect(new SlotSelectEvent(1, shift));
+
+        Assert.Equal(new[] { Brenna }, result.Selection);
+    }
+
+    [Fact]
+    public void Select_all_leaves_out_downed_party_members()
+    {
+        SelectionModel model = PartyOfThree();
+        model.GoDown(Cerys);
+
+        ClickResult result = model.SelectAll();
+
+        Assert.Equal(new[] { Aldric, Brenna }, result.Selection.OrderBy(id => id.Value));
+    }
+
+    [Fact]
+    public void A_party_member_who_gets_up_can_be_selected_again_but_is_not_selected_by_getting_up()
+    {
+        SelectionModel model = PartyOfThree(Brenna);
+        model.GoDown(Aldric);
+
+        ClickResult up = model.GetUp(Aldric);
+        ClickResult slot = model.SlotSelect(new SlotSelectEvent(1));
+
+        Assert.Equal(new[] { Brenna }, up.Selection);
+        Assert.Equal(new[] { Aldric }, slot.Selection);
+    }
 }

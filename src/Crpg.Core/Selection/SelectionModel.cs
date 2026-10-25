@@ -14,6 +14,9 @@ public sealed class SelectionModel
 
     private ImmutableHashSet<PartyMemberId> _selection = ImmutableHashSet<PartyMemberId>.Empty;
 
+    /// <summary>The party members who are down: never in the selection.</summary>
+    private ImmutableHashSet<PartyMemberId> _down = ImmutableHashSet<PartyMemberId>.Empty;
+
     /// <summary>A model for a party whose party members are given in portrait slot order: slot 1 first.</summary>
     public SelectionModel(IReadOnlyList<PartyMemberId> portraitSlots)
     {
@@ -61,10 +64,12 @@ public sealed class SelectionModel
         return new ClickResult(_selection, orders);
     }
 
+    /// <summary>Left-click on a party member who is up selects only them; on a downed party member it changes nothing.</summary>
     private ClickResult LeftClick(ClickTarget target)
     {
         _selection = target switch
         {
+            ClickTarget.PartyMember partyMember when _down.Contains(partyMember.Id) => _selection,
             ClickTarget.PartyMember partyMember => ImmutableHashSet.Create(partyMember.Id),
             ClickTarget.Ground => ImmutableHashSet<PartyMemberId>.Empty,
             _ => _selection,
@@ -73,11 +78,12 @@ public sealed class SelectionModel
     }
 
     /// <summary>
-    /// Shift+left-click on a party member toggles them in or out of the selection; on ground it changes nothing.
+    /// Shift+left-click on a party member who is up toggles them in or out of the selection; on ground or a downed
+    /// party member it changes nothing.
     /// </summary>
     private ClickResult ShiftLeftClick(ClickTarget target)
     {
-        if (target is ClickTarget.PartyMember partyMember)
+        if (target is ClickTarget.PartyMember partyMember && !_down.Contains(partyMember.Id))
         {
             _selection = _selection.Contains(partyMember.Id)
                 ? _selection.Remove(partyMember.Id)
@@ -89,24 +95,24 @@ public sealed class SelectionModel
 
     /// <summary>
     /// Applies one box select and returns the selection after it. Without shift the selection becomes exactly the
-    /// party members in the box; with shift they are added to it. Box select never issues orders.
+    /// party members in the box; with shift they are added to it. Downed party members in the box are left out. Box
+    /// select never issues orders.
     /// </summary>
     public ClickResult BoxSelect(BoxSelectEvent box)
     {
-        _selection = box.Shift
-            ? _selection.Union(box.PartyMembers)
-            : box.PartyMembers.ToImmutableHashSet();
+        ImmutableHashSet<PartyMemberId> inside = box.PartyMembers.ToImmutableHashSet().Except(_down);
+        _selection = box.Shift ? _selection.Union(inside) : inside;
         return CurrentResult();
     }
 
     /// <summary>
     /// Applies one selection by portrait slot and returns the selection after it. Without shift the selection becomes
     /// only the party member in that slot; with shift that party member is toggled in or out of it. Slot events never
-    /// issue orders. A slot with no party member changes nothing.
+    /// issue orders. A slot with no party member, or with a downed party member, changes nothing.
     /// </summary>
     public ClickResult SlotSelect(SlotSelectEvent slot)
     {
-        if (slot.Slot < 1 || slot.Slot > _portraitSlots.Count)
+        if (slot.Slot < 1 || slot.Slot > _portraitSlots.Count || _down.Contains(_portraitSlots[slot.Slot - 1]))
         {
             return CurrentResult();
         }
@@ -124,10 +130,34 @@ public sealed class SelectionModel
         return CurrentResult();
     }
 
-    /// <summary>Selects every party member in a portrait slot and returns the selection after it. Issues no orders.</summary>
+    /// <summary>
+    /// Selects every party member in a portrait slot who is not down and returns the selection after it. Issues no
+    /// orders.
+    /// </summary>
     public ClickResult SelectAll()
     {
-        _selection = _portraitSlots.ToImmutableHashSet();
+        _selection = _portraitSlots.ToImmutableHashSet().Except(_down);
+        return CurrentResult();
+    }
+
+    /// <summary>
+    /// Tells the model a party member is down: they drop out of the selection and can't be selected again until they
+    /// get up. Returns the selection after it. Issues no orders.
+    /// </summary>
+    public ClickResult GoDown(PartyMemberId partyMember)
+    {
+        _down = _down.Add(partyMember);
+        _selection = _selection.Remove(partyMember);
+        return CurrentResult();
+    }
+
+    /// <summary>
+    /// Tells the model a downed party member got up: they can be selected again, though getting up doesn't select
+    /// them. Returns the selection after it. Issues no orders.
+    /// </summary>
+    public ClickResult GetUp(PartyMemberId partyMember)
+    {
+        _down = _down.Remove(partyMember);
         return CurrentResult();
     }
 
