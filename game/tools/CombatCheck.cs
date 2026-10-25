@@ -12,18 +12,22 @@ namespace Crpg.Tools;
 /// attack orders and target rings in their tints. They walk into melee reach and attack at most once per attack
 /// cooldown: a repeated order mid-cooldown doesn't reset it, and it doesn't advance while paused. Every attack writes
 /// one combat log line in the agreed format, a hit flashes the goblin and shrinks its HP bar, and at 0 HP it turns
-/// grey, loses its click area and its attackers go idle.
+/// grey, loses its click area and its attackers go idle. Then the rogue and wizard attack Goblin 2 from range: each
+/// stops at the range of their attack (shortbow 16 tiles, Fire Bolt 24) and never closes to melee, both follow the
+/// goblin when it walks away and attack again once back in range, and their log lines show shortbow damage with the
+/// DEX mod and Fire Bolt damage without one.
 /// Run from game/ after dotnet build, with the seed:
-///   godot --headless --path . --fixed-fps 60 --quit-after 4000 --script res://tools/CombatCheck.cs --seed 11
+///   godot --headless --path . --fixed-fps 60 --quit-after 6000 --script res://tools/CombatCheck.cs --seed 1
 /// Prints "CombatCheck: PASSED" and exits 0, or prints ERROR lines and exits 1.
 /// </summary>
 public partial class CombatCheck : HeadlessCheck
 {
     /// <summary>
-    /// The seed the documented command passes. The fight depends on its rolls: six attacks, with misses, a natural 1
-    /// and hits, long enough for the cooldown cases.
+    /// The seed the documented command passes. The fights depend on its rolls. Melee: four attacks, three misses then
+    /// the fighter's killing hit, long enough for the cooldown cases. Ranged: seven attacks, with misses, Fire Bolt
+    /// hits and a shortbow natural 20 crit for the kill, with Goblin 2 alive until after it walks away.
     /// </summary>
-    private const int ExpectedSeed = 11;
+    private const int ExpectedSeed = 1;
 
     /// <summary>Physics frames in one attack cooldown at normal combat speed and --fixed-fps 60.</summary>
     private const int CooldownFrames = (int)(AttackCooldown.Seconds * 60);
@@ -45,7 +49,26 @@ public partial class CombatCheck : HeadlessCheck
         @"^(?<attacker>Fighter|Cleric) → Goblin 1: \d+[+-]\d+=\d+ vs AC 15 (hit|miss|nat 20 crit|nat 1 miss)"
         + @"(, \d+d\d+([+-]\d+)?=\d+ \w+)? \(Goblin 1: (?<hp>\d+)/7(?<dead>, dead)?\)$");
 
+    private static readonly Regex RangedAttackLine = new(
+        @"^(?<attacker>Rogue|Wizard) → Goblin 2: \d+\+4=\d+ vs AC 15 (hit|miss|nat 20 crit|nat 1 miss)"
+        + @"(, (?<damage>\d+d\d+(\+\d+)?=\d+ \w+))? \(Goblin 2: \d+/7(, dead)?\)$");
+
+    /// <summary>Where Goblin 2 walks to: out of both the rogue's and the wizard's range, past the wall's north end.</summary>
+    private static readonly Vector2I FleeTile = new(34, 4);
+
+    /// <summary>How long the check waits for Goblin 2 to finish walking away.</summary>
+    private const int FleeFrames = 1500;
+
     private readonly List<(int Frame, string Line)> _attacks = new();
+    private readonly List<RangedAttack> _rangedAttacks = new();
+    private readonly HashSet<Character> _followers = new();
+    private Character _rangedGoblin = null!;
+    private bool _rangedPhase;
+    private bool _fleeing;
+    private float _closestRanged = float.MaxValue;
+    private bool _rangedFlashPending;
+    private int _rangedHitsSeen;
+    private int _rangedHitsFlashed;
     private int _frame;
     private int _pausedFrames;
     private bool _flashPending;
@@ -57,6 +80,10 @@ public partial class CombatCheck : HeadlessCheck
     private Character Fighter => PartyMembers[0];
 
     private Character Cleric => PartyMembers[1];
+
+    private Character Rogue => PartyMembers[2];
+
+    private Character Wizard => PartyMembers[3];
 
     private Vector2 GoblinBody => _goblin.GlobalPosition + PartyMemberClickOffset;
 
@@ -75,6 +102,28 @@ public partial class CombatCheck : HeadlessCheck
             if (body.R > _goblin.Tint.R + 0.3f && body.G > _goblin.Tint.G + 0.3f)
             {
                 _hitsFlashed++;
+            }
+        }
+
+        if (_rangedFlashPending)
+        {
+            _rangedFlashPending = false;
+            Color body = _rangedGoblin.BodyColour;
+            if (body.R > _rangedGoblin.Tint.R + 0.3f && body.G > _rangedGoblin.Tint.G + 0.3f)
+            {
+                _rangedHitsFlashed++;
+            }
+        }
+
+        if (_rangedPhase)
+        {
+            _closestRanged = Mathf.Min(_closestRanged, Mathf.Min(RangedDistance(Rogue), RangedDistance(Wizard)));
+            foreach (Character attacker in new[] { Rogue, Wizard })
+            {
+                if (_fleeing && attacker.IsMoving)
+                {
+                    _followers.Add(attacker);
+                }
             }
         }
     }
@@ -195,14 +244,156 @@ public partial class CombatCheck : HeadlessCheck
             && (Fighter.IsMoving || Cleric.IsMoving));
         yield return 60;
         Expect("nobody attacks the dead goblin", _attacks.Count == attacksAtDeath);
+
+        foreach (int step in RangedFight())
+        {
+            yield return step;
+        }
+
         rules.Log.Changed -= OnLogChanged;
+    }
+
+    /// <summary>
+    /// The rogue and wizard attack Goblin 2 from range. The rogue starts out of shortbow range, walks until in range
+    /// and stops there; the wizard starts inside Fire Bolt range and shoots without moving. Then the goblin walks away
+    /// out of both ranges: both re-path after it, and once it stops they stop at range and attack again, until it dies.
+    /// Neither ever comes within melee reach.
+    /// </summary>
+    private IEnumerable<int> RangedFight()
+    {
+        _rangedGoblin = Zone.GetNodeOrNull<Character>("Goblin2")!;
+        Expect("the test zone has a second goblin for the ranged attackers", _rangedGoblin is not null);
+        if (_rangedGoblin is null)
+        {
+            yield break;
+        }
+
+        Expect($"the shortbow reaches 16 tiles and Fire Bolt 24 (got {Rogue.Stats.Attack.RangeTiles}, {Wizard.Stats.Attack.RangeTiles})",
+            Rogue.Stats.Attack.RangeTiles == 16 && Wizard.Stats.Attack.RangeTiles == 24);
+        Expect($"the rogue starts out of shortbow range ({RangedDistance(Rogue):0} px, range {RangeEdge(Rogue):0} px)",
+            RangedDistance(Rogue) > RangeEdge(Rogue));
+        Expect($"the wizard starts inside Fire Bolt range ({RangedDistance(Wizard):0} px, range {RangeEdge(Wizard):0} px)",
+            RangedDistance(Wizard) <= RangeEdge(Wizard));
+
+        Root.GetNode<CameraRig>("Main/CameraRig").CentreOn((Rogue.GlobalPosition + _rangedGoblin.GlobalPosition) / 2);
+        yield return 2;
+        ClickPartyMember(MouseButton.Left, Rogue);
+        yield return 2;
+        ClickPartyMember(MouseButton.Left, Wizard, shift: true);
+        yield return 2;
+        Expect("the rogue and wizard alone are selected", Rogue.SelectionRingVisible && Wizard.SelectionRingVisible
+            && !Fighter.SelectionRingVisible && !Cleric.SelectionRingVisible);
+
+        _rangedPhase = true;
+        Click(MouseButton.Right, _rangedGoblin.GlobalPosition + PartyMemberClickOffset);
+        yield return 2;
+        Expect("a right-click on Goblin 2 gives the rogue and wizard attack orders on it",
+            Rogue.AttackTarget == _rangedGoblin && Wizard.AttackTarget == _rangedGoblin);
+        Expect("the rogue walks into range; the wizard, already in range, doesn't move", Rogue.IsMoving && !Wizard.IsMoving);
+
+        for (int i = 0; i < ReachFrames && RangedAttacksBy("Rogue").Count == 0; i++)
+        {
+            yield return 1;
+        }
+
+        Expect("the wizard attacks from where they stand", RangedAttacksBy("Wizard").Count > 0);
+        ExpectAttackAtRange("Rogue", RangedAttacksBy("Rogue").FirstOrDefault(), "walks into shortbow range");
+        Expect("Goblin 2 survives until it walks away, so the re-path case can run (needs the seed)",
+            !_rangedGoblin.IsDead);
+
+        // The target walks away, out of both ranges.
+        Vector2 away = Ground.ToGlobal(Ground.MapToLocal(FleeTile));
+        _rangedGoblin.MoveTo(away);
+        _fleeing = true;
+        yield return 2;
+        for (int i = 0; i < FleeFrames && _rangedGoblin.IsMoving && !_rangedGoblin.IsDead; i++)
+        {
+            yield return 1;
+        }
+
+        _fleeing = false;
+        int stoppedFrame = _frame;
+        Expect($"Goblin 2 walks away to tile {FleeTile}, out of both starting ranges",
+            !_rangedGoblin.IsDead && _rangedGoblin.GlobalPosition.DistanceTo(away) < 2 * ArriveTolerance);
+        Expect($"the rogue and wizard re-path after the moving goblin ({string.Join(", ", _followers.Select(f => f.DisplayName))})",
+            _followers.Contains(Rogue) && _followers.Contains(Wizard));
+
+        for (int i = 0; i < FightFrames && !_rangedGoblin.IsDead
+             && !(AttackAfter("Rogue", stoppedFrame) is not null && AttackAfter("Wizard", stoppedFrame) is not null); i++)
+        {
+            yield return 1;
+        }
+
+        ExpectAttackAtRange("Rogue", AttackAfter("Rogue", stoppedFrame), "follows into shortbow range and attacks again");
+        ExpectAttackAtRange("Wizard", AttackAfter("Wizard", stoppedFrame), "follows into Fire Bolt range and attacks again");
+
+        for (int i = 0; i < FightFrames && !_rangedGoblin.IsDead; i++)
+        {
+            yield return 1;
+        }
+
+        _rangedPhase = false;
+        Expect($"the rogue and wizard kill Goblin 2 ({_rangedAttacks.Count} attacks)", _rangedGoblin.IsDead);
+        float reach = Character.TileLength + Rogue.FeetRadius + _rangedGoblin.FeetRadius;
+        Expect($"the ranged attackers never come within melee reach (closest {_closestRanged:0} px, reach {reach:0} px)",
+            _closestRanged > reach);
+        CheckRangedAttackLines();
+        Expect($"every ranged hit flashes Goblin 2 ({_rangedHitsFlashed} of {_rangedHitsSeen})",
+            _rangedHitsSeen > 0 && _rangedHitsFlashed == _rangedHitsSeen);
+    }
+
+    private float RangedDistance(Character attacker) => attacker.GlobalPosition.DistanceTo(_rangedGoblin.GlobalPosition);
+
+    /// <summary>The farthest the attacker's feet may be from Goblin 2's to attack: range in tiles plus both feet radii.</summary>
+    private float RangeEdge(Character attacker) =>
+        attacker.Stats.Attack.RangeTiles * Character.TileLength + attacker.FeetRadius + _rangedGoblin.FeetRadius;
+
+    private List<RangedAttack> RangedAttacksBy(string attacker) =>
+        _rangedAttacks.Where(attack => attack.Line.StartsWith(attacker + " → ")).ToList();
+
+    private RangedAttack? AttackAfter(string attacker, int frame) =>
+        RangedAttacksBy(attacker).FirstOrDefault(attack => attack.Frame > frame);
+
+    /// <summary>An attack made standing still, inside range, and less than half a tile short of it: stopped at range.</summary>
+    private void ExpectAttackAtRange(string attacker, RangedAttack? attack, string what)
+    {
+        Character character = attacker == "Rogue" ? Rogue : Wizard;
+        float edge = RangeEdge(character);
+        Expect($"the {attacker.ToLowerInvariant()} {what} and stops at range ({attack?.Distance:0.0} px, range {edge:0.0} px, moving {attack?.Moving})",
+            attack is { Moving: false } && attack.Distance <= edge && attack.Distance > edge - Character.TileLength / 2);
+    }
+
+    private void CheckRangedAttackLines()
+    {
+        List<string> lines = _rangedAttacks.Select(attack => attack.Line).ToList();
+        List<string> bad = lines.Where(line => !RangedAttackLine.IsMatch(line)).ToList();
+        Expect($"every ranged attack writes one line in the agreed format ({string.Join(" | ", bad)})",
+            lines.Count > 0 && bad.Count == 0);
+        List<Match> hits = lines.Select(line => RangedAttackLine.Match(line))
+            .Where(match => match.Success && match.Groups["damage"].Success).ToList();
+        List<Match> bowHits = hits.Where(match => match.Groups["attacker"].Value == "Rogue").ToList();
+        List<Match> boltHits = hits.Where(match => match.Groups["attacker"].Value == "Wizard").ToList();
+        Expect($"the rogue and wizard each hit at least once ({bowHits.Count}, {boltHits.Count}; needs the seed)",
+            bowHits.Count > 0 && boltHits.Count > 0);
+        Expect("shortbow damage adds the DEX mod: 1d6+2 piercing", bowHits.All(match =>
+            Regex.IsMatch(match.Groups["damage"].Value, @"^\d+d6\+2=\d+ piercing$")));
+        Expect("Fire Bolt damage adds no ability mod: 1d10 fire", boltHits.All(match =>
+            Regex.IsMatch(match.Groups["damage"].Value, @"^\d+d10=\d+ fire$")));
+        Expect("only the killing blow shows Goblin 2 dead",
+            lines.Count(line => line.EndsWith(", dead)")) == 1 && lines[^1].EndsWith("(Goblin 2: 0/7, dead)"));
     }
 
     private void OnLogChanged(IReadOnlyList<string> lines)
     {
         string line = lines[^1];
-        _attacks.Add((_frame, line));
         GD.Print($"frame {_frame}: {line}");
+        if (_rangedPhase)
+        {
+            OnRangedAttack(line);
+            return;
+        }
+
+        _attacks.Add((_frame, line));
         Match match = AttackLine.Match(line);
         if (!match.Success)
         {
@@ -221,6 +412,20 @@ public partial class CombatCheck : HeadlessCheck
             _flashPending = true;
         }
     }
+
+    private void OnRangedAttack(string line)
+    {
+        Character? attacker = line.StartsWith("Rogue → ") ? Rogue : line.StartsWith("Wizard → ") ? Wizard : null;
+        _rangedAttacks.Add(new RangedAttack(_frame, line, attacker is null ? -1f : RangedDistance(attacker),
+            attacker?.IsMoving ?? true));
+        if (line.Contains(" hit,") || line.Contains(" crit,"))
+        {
+            _rangedHitsSeen++;
+            _rangedFlashPending = true;
+        }
+    }
+
+    private sealed record RangedAttack(int Frame, string Line, float Distance, bool Moving);
 
     private List<int> AttacksBy(string attacker) =>
         _attacks.Where(attack => attack.Line.StartsWith(attacker + " → ")).Select(attack => attack.Frame).ToList();

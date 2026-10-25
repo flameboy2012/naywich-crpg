@@ -55,10 +55,13 @@ public partial class BuildTestZone : SceneTree
     /// <summary>
     /// Goblins, as (node name, combat log name, tile). About 15 tiles east of the party start at tile (8, 12), well
     /// past the 200 px moves the other headless checks make, and off the straight path from the party to them.
+    /// Goblin 2 stands behind Goblin 1, just out of the rogue's shortbow range from the party start, for CombatCheck's
+    /// ranged attackers.
     /// </summary>
     private static readonly (string Node, string Name, Vector2I Tile)[] Goblins =
     {
         ("Goblin1", "Goblin 1", new Vector2I(22, 8)),
+        ("Goblin2", "Goblin 2", new Vector2I(24, 7)),
     };
 
     private Node2D _zone = null!;

@@ -89,6 +89,16 @@ public class CombatLogTests
     }
 
     [Fact]
+    public void A_shortbow_hit_shows_the_dex_modifier_on_the_damage()
+    {
+        AttackResult result = new CombatRules(new FixedRolls(12, 3))
+            .ResolveAttack(TestCharacters.Rogue(), TestCharacters.Goblin());
+
+        Assert.Equal("Rogue → Goblin 1: 12+4=16 vs AC 15 hit, 1d6+2=5 piercing (Goblin 1: 2/7)",
+            CombatLog.AttackLine(result, targetHp: 2, targetMaxHp: 7, targetIsEnemy: true));
+    }
+
+    [Fact]
     public void A_negative_modifier_shows_with_a_minus_sign()
     {
         Stats weakling = TestCharacters.Fighter() with

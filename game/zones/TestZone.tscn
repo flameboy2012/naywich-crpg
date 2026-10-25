@@ -28,3 +28,12 @@ InstanceName = "Goblin 1"
 
 [node name="AiControl" type="Node" parent="Goblin1" unique_id=2076264240]
 script = ExtResource("4_scdah")
+
+[node name="Goblin2" parent="." unique_id=1202498147 instance=ExtResource("2_vnwra")]
+position = Vector2(576, 512)
+Tint = Color(0.45, 0.7, 0.25, 1)
+CharacterStats = ExtResource("3_a0bnf")
+InstanceName = "Goblin 2"
+
+[node name="AiControl" type="Node" parent="Goblin2" unique_id=925406248]
+script = ExtResource("4_scdah")
