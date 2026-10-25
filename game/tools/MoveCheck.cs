@@ -74,11 +74,82 @@ public partial class MoveCheck : HeadlessCheck
             !last.IsMoving && last.GlobalPosition.DistanceTo(lastTarget) < ArriveTolerance);
         Expect("the first party member stays put once deselected", PartyMember.GlobalPosition.DistanceTo(stopped) < StillTolerance);
 
+        IEnumerator<int> occupied = OccupiedSlotMove();
+        while (occupied.MoveNext())
+        {
+            yield return occupied.Current;
+        }
+
         IEnumerator<int> group = GroupMove(start);
         while (group.MoveNext())
         {
             yield return group.Current;
         }
+    }
+
+    /// <summary>
+    /// Sends the first party member, alone, to where an idle party member stands: the move can't end on the spot, so the
+    /// arrival rule finishes it once they are close and have stopped making progress, instead of jittering forever.
+    /// </summary>
+    private IEnumerator<int> OccupiedSlotMove()
+    {
+        Character mover = PartyMember;
+        Character idle = PartyMembers[1];
+        Vector2 occupied = idle.GlobalPosition;
+        Vector2 moverStart = mover.GlobalPosition;
+        Vector2 idleStart = idle.GlobalPosition;
+
+        Expect("the arrival distance and no-progress timeout are exported", new[]
+        {
+            nameof(Character.ArrivalDistanceTiles), nameof(Character.NoProgressTimeoutSeconds),
+        }.All(name => mover.GetPropertyList().Any(property =>
+            (string)property["name"] == name
+            && ((PropertyUsageFlags)(int)property["usage"]).HasFlag(PropertyUsageFlags.Editor))));
+
+        ClickPartyMember(MouseButton.Left, mover);
+        yield return 2;
+        Click(MouseButton.Right, occupied);
+        yield return 1;
+        Expect("a move onto an idle party member starts", mover.IsMoving);
+
+        // Walking time at full speed, plus the no-progress timeout, plus two seconds of margin for steering.
+        float walk = mover.GlobalPosition.DistanceTo(occupied) / mover.SpeedPixelsPerSecond;
+        int limit = Mathf.CeilToInt((walk + mover.NoProgressTimeoutSeconds + 2f) * 60);
+        int frames = 0;
+        int close = -1;
+        for (; frames < limit && mover.IsMoving; frames++)
+        {
+            if (close < 0 && mover.GlobalPosition.DistanceTo(occupied) <= mover.ArrivalDistancePixels)
+            {
+                close = frames;
+            }
+
+            yield return 1;
+        }
+
+        // Once within the arrival distance, the move ends within the timeout plus a small margin for the last approach.
+        int closeLimit = Mathf.CeilToInt((mover.NoProgressTimeoutSeconds + 0.75f) * 60);
+        Vector2 stopped = mover.GlobalPosition;
+        float off = stopped.DistanceTo(occupied);
+        Expect($"a move onto an occupied spot finishes in time ({frames} of {limit} frames, "
+            + $"{frames - close} of {closeLimit} once within the arrival distance)",
+            !mover.IsMoving && close >= 0 && frames - close <= closeLimit);
+        Expect($"and ends within the arrival distance (off by {off:0.0} px, limit {mover.ArrivalDistancePixels:0.0} px)",
+            off <= mover.ArrivalDistancePixels + 1f);
+        Expect("the idle party member was never pushed", idle.GlobalPosition.DistanceTo(idleStart) < StillTolerance);
+        yield return 60;
+        Expect("stays still after giving up (no jitter)",
+            !mover.IsMoving && mover.GlobalPosition.DistanceTo(stopped) < StillTolerance && mover.Velocity == Vector2.Zero);
+
+        // Walk back, so the two party members' capsules don't overlap for the clicks that follow.
+        Click(MouseButton.Right, moverStart);
+        yield return 1;
+        for (int i = 0; i < limit && mover.IsMoving; i++)
+        {
+            yield return 1;
+        }
+
+        Expect("walks back off the occupied spot", !mover.IsMoving && mover.GlobalPosition.DistanceTo(moverStart) < ArriveTolerance);
     }
 
     /// <summary>Selects the whole party and right-clicks one point: everyone ends at their own spot.</summary>

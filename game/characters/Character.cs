@@ -1,3 +1,4 @@
+using Crpg.Core.Movement;
 using Godot;
 
 namespace Crpg;
@@ -28,6 +29,7 @@ public partial class Character : CharacterBody2D
 
     private Sprite2D _selectionRing = null!;
     private NavigationAgent2D _agent = null!;
+    private ArrivalRule _arrival = null!;
 
     /// <summary>
     /// Radius of the feet collision circle, set in Character.tscn. The one source for the navigation agent radius and
@@ -43,6 +45,22 @@ public partial class Character : CharacterBody2D
     public float SpeedTilesPerSecond { get; set; } = 1f;
 
     public float SpeedPixelsPerSecond => SpeedTilesPerSecond * TileLength;
+
+    /// <summary>
+    /// How close to the destination, in tiles, a party member that has stopped making progress must be for the move to
+    /// finish anyway (an occupied spread slot, or slots snapped together near a wall). Tunable in the inspector.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,2,0.05,or_greater")]
+    public float ArrivalDistanceTiles { get; set; } = 0.5f;
+
+    /// <summary>
+    /// Seconds without meaningful progress, within <see cref="ArrivalDistanceTiles"/> of the destination, after which a
+    /// move finishes. Tunable in the inspector.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,5,0.05,or_greater")]
+    public float NoProgressTimeoutSeconds { get; set; } = 0.5f;
+
+    public float ArrivalDistancePixels => ArrivalDistanceTiles * TileLength;
 
     /// <summary>True while the character has a destination it has not reached yet.</summary>
     public bool IsMoving { get; private set; }
@@ -84,6 +102,7 @@ public partial class Character : CharacterBody2D
         _agent.TargetPosition = globalPosition;
         _agent.MaxSpeed = SpeedPixelsPerSecond;
         _agent.AvoidancePriority = MovingAvoidancePriority;
+        _arrival = new ArrivalRule(ArrivalDistancePixels, NoProgressTimeoutSeconds);
         IsMoving = true;
     }
 
@@ -95,7 +114,9 @@ public partial class Character : CharacterBody2D
             return;
         }
 
-        if (_agent.IsNavigationFinished())
+        // The final path point, not the target: an unreachable target is replaced by the closest reachable point.
+        if (_agent.IsNavigationFinished()
+            || _arrival.Update(GlobalPosition.DistanceTo(_agent.GetFinalPosition()), (float)delta))
         {
             Stop();
             return;
