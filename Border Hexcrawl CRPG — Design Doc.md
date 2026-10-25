@@ -324,13 +324,14 @@ Build in small, playable steps. Each milestone ends with something you can run a
 
 **M1.5 — Group movement**
 
-- [ ] Four party members, each with a distinct placeholder tint. Bodies don't block each other; agent avoidance steers moving members around the others, with no shoving.
-- [ ] Shift-click adds or removes a party member; shift-click on ground does nothing
-- [ ] Box select: the rectangle is drawn while dragging and tests each member's feet point in screen space. A plain drag replaces the selection, shift+drag adds to it, and an empty box clears it. A press that moves less than about 6 px is a click.
-- [ ] Spread slots: a fixed, world-aligned pattern with slots 1 tile apart, the first on the clicked point. Members are assigned to slots to minimise total distance (pure logic in `Crpg.Core`). Each slot snaps to its closest reachable point; slots stacking near walls is a known limit.
-- [ ] Arrival: a move also ends when the member is within about half a tile of its slot and has stopped making progress for about 0.5 s, so an occupied slot can't leave it jittering.
-- [ ] Move marker: on right-click, a ring in the member's tint at each selected member's real end point. Markers pulse and fade over about 1 s; a new click replaces them all.
-- [ ] Path line: a thin line in the member's tint along the navigation path from each selected party member to their destination. It shrinks as they walk and disappears on arrival or deselection.
+- [x] Four party members, each with a distinct placeholder tint. Bodies don't block each other; agent avoidance steers moving members around the others, with no shoving.
+- [x] Shift-click adds or removes a party member; shift-click on ground does nothing
+- [x] Box select: the rectangle is drawn while dragging and tests each member's feet point in screen space. A plain drag replaces the selection, shift+drag adds to it, and an empty box clears it. A press that moves less than about 6 px is a click.
+- [x] Spread slots: a fixed, world-aligned pattern with slots 1 tile apart, the first on the clicked point. Members are assigned to slots to minimise total distance (pure logic in `Crpg.Core`). Each slot snaps to its closest reachable point; slots stacking near walls is a known limit.
+- [x] Arrival: a move also ends when the member is within about half a tile of its slot and has stopped making progress for about 0.5 s, so an occupied slot can't leave it jittering.
+- [x] Move marker: on right-click, a ring in the member's tint at each selected member's real end point. Markers pulse and fade over about 1 s; a new click replaces them all.
+- [x] Path line: a thin line in the member's tint along the navigation path from each moving party member to their destination, selected or not, so their order stays visible. It shrinks as they walk and disappears on arrival.
+- Known limit from play-test: with avoidance, party members can get stuck on each other and slow down when steering around one another. Acceptable for now; it needs a little micro.
 - [ ] Review the C# vs GDScript decision (ADR 0002): log Godot C# friction during the build, decide at merge
 
 **M1.6 — Party UI and camera**

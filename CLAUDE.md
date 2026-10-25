@@ -10,7 +10,7 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/ag
 
 ### Godot work
 
-Before building, running or testing anything under `game/`, or touching worktrees, read `docs/agents/godot-gotchas.md`. It holds the verify loop, the headless checks, and navigation, BOM and old-git traps.
+Before building, running or testing anything under `game/`, or touching worktrees, read `docs/agents/godot-gotchas.md`. It holds the verify loop, the headless checks, and navigation, BOM and git traps.
 
 ### Milestones
 
