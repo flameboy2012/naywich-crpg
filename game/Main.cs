@@ -20,10 +20,10 @@ public partial class Main : Node2D
         cameraRig.CentreOn(PartyCentre(zone));
     }
 
-    /// <summary>The average position of the party members in a loaded zone.</summary>
-    private Vector2 PartyCentre(Node2D zone)
+    /// <summary>The average position of the party members in a loaded zone; the camera starts centred on it.</summary>
+    public static Vector2 PartyCentre(Node2D zone)
     {
-        var positions = GetTree().GetNodesInGroup(PlayerControl.PartyMembersGroup)
+        var positions = zone.GetTree().GetNodesInGroup(PlayerControl.PartyMembersGroup)
             .Select(control => control.GetParent<Node2D>())
             .Where(partyMember => partyMember.GetParent() == zone)
             .Select(partyMember => partyMember.GlobalPosition)

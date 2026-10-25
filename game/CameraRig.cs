@@ -1,3 +1,4 @@
+using Crpg.Core;
 using Crpg.Core.Camera;
 using Godot;
 
@@ -12,10 +13,11 @@ public partial class CameraRig : Node2D
 {
     /// <summary>
     /// How far (px) the zone bounds reach past the ground tiles, left and right (X) and top and bottom (Y). Starts at
-    /// one tile's screen size, 64x32, split as 64 px a side and 32 px top and bottom. Provisional until the play-test.
+    /// one tile's screen size (<see cref="TileScale"/>), as a tile's width a side and a tile's height top and bottom.
+    /// Provisional until the play-test.
     /// </summary>
     [Export]
-    public Vector2 ZoneBoundsMargin { get; set; } = new(64, 32);
+    public Vector2 ZoneBoundsMargin { get; set; } = new(TileScale.Width, TileScale.Height);
 
     /// <summary>How fast (px/s) keyboard pan and edge pan move the camera. Provisional until the play-test.</summary>
     [Export]
@@ -108,13 +110,17 @@ public partial class CameraRig : Node2D
         }
     }
 
-    /// <summary>Sets the zone bounds from a zone's ground layer: its tiles' bounding rectangle, grown by the margin.</summary>
+    /// <summary>Sets the zone bounds from a zone's ground layer, as <see cref="ZoneBoundsRect"/> gives them.</summary>
     public void SetZone(TileMapLayer ground)
     {
-        Rect2 rect = GroundRect(ground).GrowIndividual(
-            ZoneBoundsMargin.X, ZoneBoundsMargin.Y, ZoneBoundsMargin.X, ZoneBoundsMargin.Y);
+        Rect2 rect = ZoneBoundsRect(ground);
         _bounds = new ZoneBounds(rect.Position.X, rect.Position.Y, rect.End.X, rect.End.Y);
     }
+
+    /// <summary>A zone's bounds (world px): its ground tiles' bounding rectangle, grown by the margin.</summary>
+    public Rect2 ZoneBoundsRect(TileMapLayer ground) =>
+        GroundRect(ground).GrowIndividual(
+            ZoneBoundsMargin.X, ZoneBoundsMargin.Y, ZoneBoundsMargin.X, ZoneBoundsMargin.Y);
 
     /// <summary>Centres the camera on a world point, as near as the zone bounds allow.</summary>
     public void CentreOn(Vector2 point)

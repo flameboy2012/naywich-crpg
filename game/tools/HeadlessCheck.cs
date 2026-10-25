@@ -5,7 +5,8 @@ using Godot;
 namespace Crpg.Tools;
 
 /// <summary>
-/// Shared harness for the headless engine checks (SelectionCheck, MoveCheck, ObstacleCheck, MarkerCheck, PathLineCheck, CameraCheck). Loads Main, waits for
+/// Shared harness for the headless engine checks (SelectionCheck, MoveCheck, ObstacleCheck, MarkerCheck, PathLineCheck,
+/// CameraCheck, KeySelectionCheck). Loads Main, waits for
 /// the zone and navigation map to settle, then runs the check's steps, pushing real clicks through the viewport.
 /// Prints "&lt;Check&gt;: PASSED" and exits 0, or prints ERROR lines and exits 1.
 /// </summary>
@@ -22,6 +23,9 @@ public abstract partial class HeadlessCheck : SceneTree
 
     /// <summary>Distance (px) under which a party member counts as not having moved.</summary>
     protected const float StillTolerance = 0.01f;
+
+    /// <summary>How close (px) counts as the same camera position.</summary>
+    protected const float PositionTolerance = 0.5f;
 
     /// <summary>Physics frames to wait after loading Main, so the zone is loaded and the navigation map synced.</summary>
     private const int SettleFrames = 5;
@@ -44,8 +48,14 @@ public abstract partial class HeadlessCheck : SceneTree
     /// <summary>The first party member: the one single-character checks drive.</summary>
     protected Character PartyMember => PartyMembers[0];
 
+    /// <summary>The loaded zone.</summary>
+    protected Node2D Zone => Root.GetNode<Node2D>(ZonePath);
+
     /// <summary>The zone's ground layer.</summary>
     protected TileMapLayer Ground => Root.GetNode<TileMapLayer>(ZonePath + "/NavigationRegion2D/Ground");
+
+    /// <summary>The world rectangle the camera shows: the viewport's visible rect seen through the canvas transform.</summary>
+    protected Rect2 VisibleWorldRect() => Root.GetCanvasTransform().AffineInverse() * Root.GetVisibleRect();
 
     /// <summary>The navigation map the zone's region is on.</summary>
     protected Rid NavigationMap => Ground.GetParent<NavigationRegion2D>().GetNavigationMap();

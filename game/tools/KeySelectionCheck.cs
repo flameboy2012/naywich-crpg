@@ -22,12 +22,6 @@ public partial class KeySelectionCheck : HeadlessCheck
     /// <summary>Frames to wait after a key press that must not move anyone, to catch a stray order.</summary>
     private const int NoMoveFrames = 20;
 
-    /// <summary>How far (px) the portrait column sits from the window's left edge, so edge pan to the left still works.</summary>
-    private const float PortraitInset = 16f;
-
-    /// <summary>How close (px) counts as the same camera position.</summary>
-    private const float PositionTolerance = 0.5f;
-
     protected override IEnumerator<int> Run()
     {
         foreach (int step in WaitForNavigationSync())
@@ -47,8 +41,9 @@ public partial class KeySelectionCheck : HeadlessCheck
                                               && (i == 0 || portrait.GetGlobalRect().Position.Y
                                                   > Portraits[i - 1].GetGlobalRect().End.Y))
                 .All(ok => ok));
-        Expect("the portrait column is inset 16 px from the left edge",
-            Portraits.All(portrait => Mathf.IsEqualApprox(portrait.GetGlobalRect().Position.X, PortraitInset)));
+        float inset = Root.GetNode<PortraitColumn>("Main/UI/PortraitColumn").Inset;
+        Expect($"the portrait column is inset {inset} px from the left edge",
+            inset > 0 && Portraits.All(portrait => Mathf.IsEqualApprox(portrait.GetGlobalRect().Position.X, inset)));
 
         for (int slot = 1; slot <= PartyMembers.Count; slot++)
         {
@@ -197,7 +192,4 @@ public partial class KeySelectionCheck : HeadlessCheck
     private bool NoneMovedFrom(Vector2[] start) =>
         PartyMembers.Select((partyMember, i) => partyMember.GlobalPosition.DistanceTo(start[i]))
             .All(distance => distance < StillTolerance);
-
-    /// <summary>The world rectangle the camera shows.</summary>
-    private Rect2 VisibleWorldRect() => Root.GetCanvasTransform().AffineInverse() * Root.GetVisibleRect();
 }

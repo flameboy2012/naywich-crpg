@@ -14,12 +14,6 @@ namespace Crpg.Tools;
 /// </summary>
 public partial class CameraCheck : HeadlessCheck
 {
-    /// <summary>The zone bounds margin outside the ground tiles: one tile's screen size, split between the sides.</summary>
-    private static readonly Vector2 ZoneBoundsMargin = new(64, 32);
-
-    /// <summary>How close (px) counts as the same camera position.</summary>
-    private const float PositionTolerance = 0.5f;
-
     /// <summary>Frames to hold a pan key for a long pan: 2 s at about 1000 px/s, further than the zone bounds allow.</summary>
     private const int LongPanFrames = 120;
 
@@ -34,13 +28,10 @@ public partial class CameraCheck : HeadlessCheck
 
     protected override IEnumerator<int> Run()
     {
-        Camera2D camera = Root.GetNode<Camera2D>("Main/CameraRig/Camera2D");
-        Node2D rig = camera.GetParent<Node2D>();
-        Rect2 view = VisibleWorldRect(camera);
-        Rect2 bounds = GroundRect().GrowIndividual(
-            ZoneBoundsMargin.X, ZoneBoundsMargin.Y, ZoneBoundsMargin.X, ZoneBoundsMargin.Y);
-        Vector2 partyCentre = PartyMembers.Aggregate(Vector2.Zero, (sum, partyMember) => sum + partyMember.GlobalPosition)
-                              / PartyMembers.Count;
+        var rig = Root.GetNode<CameraRig>("Main/CameraRig");
+        Rect2 view = VisibleWorldRect();
+        Rect2 bounds = rig.ZoneBoundsRect(Ground);
+        Vector2 partyCentre = Main.PartyCentre(Zone);
         GD.Print($"view {view}, zone bounds {bounds}, party centre {partyCentre}");
 
         Expect("the zone is 48x48 tiles", Ground.GetUsedRect() == new Rect2I(0, 0, 48, 48));
@@ -64,14 +55,14 @@ public partial class CameraCheck : HeadlessCheck
         HoldKey(Key.Right, true);
         yield return LongPanFrames;
         HoldKey(Key.Right, false);
-        view = VisibleWorldRect(camera);
+        view = VisibleWorldRect();
         Expect("a long arrow key pan right stops at the zone bounds",
             Mathf.Abs(view.End.X - bounds.End.X) < PositionTolerance && bounds.Encloses(view));
 
         HoldKey(Key.A, true);
         yield return LongPanFrames;
         HoldKey(Key.A, false);
-        view = VisibleWorldRect(camera);
+        view = VisibleWorldRect();
         Expect("a long WASD pan left stops at the zone bounds",
             Mathf.Abs(view.Position.X - bounds.Position.X) < PositionTolerance && bounds.Encloses(view));
 
@@ -231,25 +222,4 @@ public partial class CameraCheck : HeadlessCheck
     /// <summary>The world point under a screen point.</summary>
     private Vector2 ScreenToWorld(Vector2 screen) => Root.GetCanvasTransform().AffineInverse() * screen;
 
-    /// <summary>The world rectangle the camera shows: the viewport's visible rect seen through the canvas transform.</summary>
-    private Rect2 VisibleWorldRect(Camera2D camera)
-    {
-        Rect2 screen = camera.GetViewport().GetVisibleRect();
-        return Root.GetCanvasTransform().AffineInverse() * screen;
-    }
-
-    /// <summary>The bounding rectangle of the ground tiles' diamonds, in world pixels.</summary>
-    private Rect2 GroundRect()
-    {
-        Rect2I used = Ground.GetUsedRect();
-        Vector2 halfTile = Ground.TileSet.TileSize / 2;
-        var rect = new Rect2(Ground.ToGlobal(Ground.MapToLocal(used.Position)), Vector2.Zero);
-        foreach (Vector2I cell in Ground.GetUsedCells())
-        {
-            Vector2 centre = Ground.ToGlobal(Ground.MapToLocal(cell));
-            rect = rect.Expand(centre - halfTile).Expand(centre + halfTile);
-        }
-
-        return rect;
-    }
 }
