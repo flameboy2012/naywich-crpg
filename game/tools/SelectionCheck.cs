@@ -48,5 +48,28 @@ public partial class SelectionCheck : HeadlessCheck
         Click(MouseButton.Left, onGround);
         yield return 1;
         Expect("left-click ground hides every ring", PartyMembers.All(partyMember => !partyMember.SelectionRingVisible));
+
+        Character first = PartyMembers[0];
+        Character second = PartyMembers[1];
+        ClickPartyMember(MouseButton.Left, first);
+        ClickPartyMember(MouseButton.Left, second, shift: true);
+        yield return 1;
+        Expect("shift-click adds a party member", RingsShow(first, second));
+
+        Click(MouseButton.Left, onGround, shift: true);
+        yield return 1;
+        Expect("shift-click ground keeps the selection", RingsShow(first, second));
+
+        ClickPartyMember(MouseButton.Left, first, shift: true);
+        yield return 1;
+        Expect("shift-click a selected party member removes them", RingsShow(second));
+
+        ClickPartyMember(MouseButton.Left, first);
+        yield return 1;
+        Expect("left-click without shift selects only the clicked party member", RingsShow(first));
     }
+
+    /// <summary>True when exactly the given party members' rings are visible and every other ring is hidden.</summary>
+    private bool RingsShow(params Character[] selected) =>
+        PartyMembers.All(partyMember => partyMember.SelectionRingVisible == selected.Contains(partyMember));
 }
