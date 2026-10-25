@@ -9,6 +9,8 @@ script = ExtResource("1")
 
 [node name="ZoneContainer" type="Node2D" parent="."]
 
+[node name="MoveMarkers" type="Node2D" parent="."]
+
 [node name="Party" type="Node2D" parent="."]
 
 [node name="PartyMember1" parent="Party" instance=ExtResource("2_char")]
@@ -31,7 +33,8 @@ Tint = Color(0.2, 0.8, 0.8, 1)
 
 [node name="Camera2D" type="Camera2D" parent="CameraRig"]
 
-[node name="SelectionController" type="Node" parent="."]
+[node name="SelectionController" type="Node" parent="." node_paths=PackedStringArray("MoveMarkers")]
 script = ExtResource("3_sel")
+MoveMarkers = NodePath("../MoveMarkers")
 
 [node name="UI" type="CanvasLayer" parent="."]
