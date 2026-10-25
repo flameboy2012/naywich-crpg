@@ -316,17 +316,18 @@ Build in small, playable steps. Each milestone ends with something you can run a
 
 **M1 — Movement prototype (start here)**
 
-- [ ] Solution skeleton: Godot project, `Crpg.Core`, xUnit tests, using the final `Main` scene tree
-- [ ] One isometric test zone with obstacles, a TileMapLayer and baked navigation, sized to fit a 1920x1080 screen
-- [ ] One party member; left-click to select, left-click empty ground to clear
-- [ ] Right-click to move with pathfinding
-- [ ] Static camera
+- [x] Solution skeleton: Godot project, `Crpg.Core`, xUnit tests, using the final `Main` scene tree
+- [x] One isometric test zone with obstacles, a TileMapLayer and baked navigation, sized to fit a 1920x1080 screen
+- [x] One party member; left-click to select, left-click empty ground to clear
+- [x] Right-click to move with pathfinding
+- [x] Static camera
 
 **M1.5 — Party control**
 
 - [ ] Second party member; shift-click and box select
 - [ ] Agent avoidance and group spread offsets
-- [ ] Move marker
+- [ ] Move marker: on right-click, a small ring at the point where the party member will actually stop (the closest reachable point, so clicks inside obstacles show the real end point). It pulses and fades over about 1 s; a new click replaces it. Proposed, to be refined.
+- [ ] Path line: a thin line along the navigation path from each selected party member to their destination. It shrinks as they walk and disappears on arrival or deselection. Proposed, to be refined.
 - [ ] Portrait column: click, shift-click, double-click to centre
 - [ ] Keys 1–4 and Ctrl+A
 - [ ] Camera pan (edges, WASD/arrows, middle-mouse) and clamp
