@@ -18,3 +18,12 @@ The order that worked for M1, plus the fixes for what went wrong.
 - **Surface ambiguous numbers to the developer.** When a spec value has two readings (M1's "1 tile per second" on an isometric grid), get the developer's answer and record it in the relevant ADR before building.
 - **Size the agent count to the graph.** A straight chain of tickets runs no faster with one agent per ticket. Use parallel implementers only when the frontier holds several unblocked tickets.
 - **Keep the developer's scope small.** The developer prefers thin first milestones and splits extras into a follow-up (M1 to M1.5). Propose cuts instead of expansions.
+
+## Rules learned in M1.5
+
+- **Give each parallel ticket its own lane.** Tickets that run at the same time should touch different code paths. Name the other agent's area in each prompt, and prefer a new headless check file over growing a shared one.
+- **Tell running agents when the integration branch moves.** An agent can finish on a stale base. After each merge, message any agent still running with the new tip and the areas likely to conflict. Merge its branch only once it has merged that tip.
+- **Name the glossary's Avoid list in implementer prompts.** Review found "member" and "group" in M1.5 code, even though the glossary avoids both.
+- **Define shared numbers once, in Core.** Tile size and the party cap were copied into a second place until review. If Core and game code both need a value, put it in Core and have the game read it.
+- **Treat visibility and feedback rules as play-test questions.** The spec hid path lines on deselection. The play-test reversed that, because seeing every party member's order matters more. Mark such rules as provisional in the spec.
+- **Make the developer's play-test list specific.** List exact things to try (a click inside an obstacle, deselecting someone mid-move), not general areas.
