@@ -20,6 +20,13 @@ public partial class MoveCheck : HeadlessCheck
         Dictionary<Character, Vector2> others = PartyMembers.Skip(1)
             .ToDictionary(other => other, other => other.GlobalPosition);
 
+        var rules = Root.GetNode<Rules>(Rules.Path);
+        float setting = (float)ProjectSettings.GetSetting(Rules.CombatSpeedSetting).AsDouble();
+        Expect($"combat speed starts at the {Rules.CombatSpeedSetting} project setting ({rules.CombatSpeed} vs {setting})",
+            ProjectSettings.HasSetting(Rules.CombatSpeedSetting) && Mathf.IsEqualApprox(rules.CombatSpeed, setting));
+        Expect($"the project setting is normal combat speed, which the speed cases below assume ({setting})",
+            Mathf.IsEqualApprox(setting, Core.Combat.CombatRules.NormalCombatSpeed));
+
         Click(MouseButton.Right, first);
         yield return 30;
         Expect("right-click with nothing selected leaves them still",
@@ -39,7 +46,6 @@ public partial class MoveCheck : HeadlessCheck
         Expect("walks towards the clicked point", PartyMember.GlobalPosition.DistanceTo(first) < from.DistanceTo(first));
 
         // ADR 0003: the global combat speed scales movement as well as the attack cooldown.
-        var rules = Root.GetNode<Rules>(Rules.Path);
         rules.CombatSpeed = 2f;
         from = PartyMember.GlobalPosition;
         yield return 30;

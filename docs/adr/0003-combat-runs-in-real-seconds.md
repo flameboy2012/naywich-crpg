@@ -4,5 +4,5 @@ The game clock runs at 1 real second = 1 game minute, for day/night and timed ev
 
 ## Consequences
 
-- Attack cooldowns and movement speeds are in real seconds, scaled by the global combat speed setting.
+- Attack cooldowns and movement speeds are in real seconds, scaled by the global combat speed setting. That setting is the project setting `crpg/combat/combat_speed` (default 1.0): in the editor, Project > Project Settings > Crpg > Combat (turn on Advanced Settings if it is hidden). The `Rules` autoload reads it at start-up.
 - The game clock keeps ticking during a fight at its own rate; a long fight advances it by minutes, not rounds.

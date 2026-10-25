@@ -21,8 +21,14 @@ public partial class Rules : Node
     public CombatRules Combat { get; private set; } = null!;
 
     /// <summary>
-    /// The global combat speed (ADR 0003): attack cooldowns and movement run this many times faster than real time. Provisional
-    /// until the M2 play-test.
+    /// The project setting that holds the starting combat speed: Project > Project Settings > Crpg > Combat > Combat
+    /// Speed in the editor, or <c>crpg/combat/combat_speed</c> in project.godot. Change it there, not in code.
+    /// </summary>
+    public const string CombatSpeedSetting = "crpg/combat/combat_speed";
+
+    /// <summary>
+    /// The global combat speed (ADR 0003): attack cooldowns and movement run this many times faster than real time.
+    /// Starts at <see cref="CombatSpeedSetting"/>; provisional until the M2 play-test.
     /// </summary>
     public float CombatSpeed { get; set; } = CombatRules.NormalCombatSpeed;
 
@@ -31,10 +37,26 @@ public partial class Rules : Node
 
     public override void _EnterTree()
     {
+        CombatSpeed = ReadCombatSpeed();
         Seed = ChooseSeed();
         Combat = new CombatRules(new SeededDiceRoller(Seed));
         Log = new CombatLog(Seed);
         GD.Print($"Rules: {CombatLog.SeedLine(Seed)}");
+    }
+
+    /// <summary>
+    /// The combat speed from <see cref="CombatSpeedSetting"/>, or normal speed when it is missing or not positive.
+    /// </summary>
+    private static float ReadCombatSpeed()
+    {
+        float speed = (float)ProjectSettings.GetSetting(CombatSpeedSetting, CombatRules.NormalCombatSpeed).AsDouble();
+        if (speed > 0f)
+        {
+            return speed;
+        }
+
+        GD.PushError($"Rules: {CombatSpeedSetting} must be above 0, not {speed}. Using normal combat speed.");
+        return CombatRules.NormalCombatSpeed;
     }
 
     /// <summary>The seed from <c>--seed N</c> (engine or user arguments), or a random one.</summary>
