@@ -1,3 +1,4 @@
+using System.Linq;
 using Godot;
 
 namespace Crpg.Tools;
@@ -11,28 +12,28 @@ namespace Crpg.Tools;
 /// </summary>
 public partial class BuildTestZone : SceneTree
 {
-    /// <summary>Zone is Size x Size tiles. 24x24 is 1536x768 px, inside 1920x1080 with margin.</summary>
-    private const int Size = 24;
-
+    /// <summary>
+    /// Zone is ZoneSizeInTiles x ZoneSizeInTiles tiles. 24x24 is 1536x768 px, inside 1920x1080 with margin.
+    /// </summary>
+    private const int ZoneSizeInTiles = 24;
 
     private const string TileSetPath = "res://zones/test_tiles.tres";
     private const string ZonePath = "res://zones/TestZone.tscn";
-
 
     /// <summary>Atlas coordinates of the obstacle tile in res://art/tiles.png.</summary>
     private static readonly Vector2I ObstacleTile = new(2, 0);
 
     /// <summary>
-    /// Obstacle layout, as inclusive tile rectangles (x0, y0, x1, y1). The party member starts at tile (8, 12):
+    /// Obstacle layout, as tile rectangles (x, y, width, height). The party member starts at tile (8, 12):
     /// a long wall to their west, two blocks and an L to the east. Clear of the paths SelectionCheck and MoveCheck use.
     /// </summary>
-    private static readonly (int X0, int Y0, int X1, int Y1)[] Obstacles =
+    private static readonly Rect2I[] Obstacles =
     {
-        (5, 3, 5, 16),     // wall
-        (16, 4, 18, 6),    // block, its middle (17, 5) is used by ObstacleCheck as an unreachable target
-        (14, 15, 16, 17),  // block
-        (19, 12, 21, 12),  // L, arm
-        (21, 13, 21, 14),  // L, leg
+        new(5, 3, 1, 14),    // wall, tiles (5, 3) to (5, 16)
+        new(16, 4, 3, 3),    // block, its middle (17, 5) is used by ObstacleCheck as an unreachable target
+        new(14, 15, 3, 3),   // block
+        new(19, 12, 3, 1),   // L, arm
+        new(21, 13, 1, 2),   // L, leg
     };
 
     private Node2D _zone = null!;
@@ -54,12 +55,13 @@ public partial class BuildTestZone : SceneTree
         // The region bakes from its children: the ground tiles' navigation polygons. The layer's own per-tile
         // navigation is off so it does not register regions on top of the baked mesh.
         var ground = new TileMapLayer { Name = "Ground", TileSet = tileSet, NavigationEnabled = false };
-        for (int x = 0; x < Size; x++)
+        for (int x = 0; x < ZoneSizeInTiles; x++)
         {
-            for (int y = 0; y < Size; y++)
+            for (int y = 0; y < ZoneSizeInTiles; y++)
             {
-                Vector2I atlas = IsObstacle(x, y) ? ObstacleTile : new Vector2I((x + y) % 2, 0);
-                ground.SetCell(new Vector2I(x, y), sourceId, atlas);
+                var tile = new Vector2I(x, y);
+                Vector2I atlas = IsObstacle(tile) ? ObstacleTile : new Vector2I((x + y) % 2, 0);
+                ground.SetCell(tile, sourceId, atlas);
             }
         }
 
@@ -141,18 +143,7 @@ public partial class BuildTestZone : SceneTree
         return radius;
     }
 
-    private static bool IsObstacle(int x, int y)
-    {
-        foreach (var (x0, y0, x1, y1) in Obstacles)
-        {
-            if (x >= x0 && x <= x1 && y >= y0 && y <= y1)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool IsObstacle(Vector2I tile) => Obstacles.Any(obstacle => obstacle.HasPoint(tile));
 
     private static void Check(Error err, string what)
     {

@@ -50,8 +50,8 @@ public partial class ObstacleCheck : HeadlessCheck
         Expect($"ground under the party member is on the navigation mesh ({groundCentre} -> {groundClosest})",
             groundClosest.DistanceTo(groundCentre) < 0.5f);
         Expect($"zone has obstacle tiles ({obstacleTiles.Count})", obstacleTiles.Count > 0);
-        Expect("every obstacle tile is a hole in the navigation mesh, with the feet-radius margin", obstacleTiles.All(c =>
-            DistanceToObstacles(NavigationServer2D.MapGetClosestPoint(map, TileCentre(c))) >= PartyMember.FeetRadius - 0.5f));
+        Expect("every obstacle tile is a hole in the navigation mesh, with the feet-radius margin", obstacleTiles.All(tile =>
+            DistanceToObstacles(NavigationServer2D.MapGetClosestPoint(map, TileCentre(tile))) >= PartyMember.FeetRadius - 0.5f));
 
         Rect2 zoneOnScreen = ZoneScreenRect();
         Expect($"whole zone fits the 1920x1080 view with the static camera ({zoneOnScreen})",
@@ -76,7 +76,7 @@ public partial class ObstacleCheck : HeadlessCheck
 
         Vector2 pastWall = TileCentre(PastWallTile);
         Expect("the straight line to the target crosses an obstacle (precondition)",
-            _obstacles.Any(d => SegmentHitsPolygon(start, pastWall, d)));
+            _obstacles.Any(diamond => SegmentHitsPolygon(start, pastWall, diamond)));
         Expect("the target past the wall is not an obstacle (precondition)", !IsObstacle(PastWallTile));
         _closestToObstacle = float.MaxValue;
         float walked = 0;
@@ -125,25 +125,25 @@ public partial class ObstacleCheck : HeadlessCheck
     /// <summary>The tile's diamond in global coordinates.</summary>
     private Vector2[] TileDiamond(Vector2I tile)
     {
-        Vector2 c = TileCentre(tile);
-        return Tile.Diamond().Select(corner => c + corner).ToArray();
+        Vector2 centre = TileCentre(tile);
+        return Tile.Diamond().Select(corner => centre + corner).ToArray();
     }
 
     /// <summary>Distance from a point to the nearest obstacle diamond; 0 if inside one.</summary>
-    private float DistanceToObstacles(Vector2 p)
+    private float DistanceToObstacles(Vector2 point)
     {
         float best = float.MaxValue;
-        foreach (Vector2[] d in _obstacles)
+        foreach (Vector2[] diamond in _obstacles)
         {
-            if (Geometry2D.IsPointInPolygon(p, d))
+            if (Geometry2D.IsPointInPolygon(point, diamond))
             {
                 return 0;
             }
 
-            for (int i = 0; i < d.Length; i++)
+            for (int i = 0; i < diamond.Length; i++)
             {
-                Vector2 q = Geometry2D.GetClosestPointToSegment(p, d[i], d[(i + 1) % d.Length]);
-                best = Mathf.Min(best, p.DistanceTo(q));
+                Vector2 closest = Geometry2D.GetClosestPointToSegment(point, diamond[i], diamond[(i + 1) % diamond.Length]);
+                best = Mathf.Min(best, point.DistanceTo(closest));
             }
         }
 
@@ -162,8 +162,8 @@ public partial class ObstacleCheck : HeadlessCheck
         {
             foreach (Vector2 corner in TileDiamond(tile))
             {
-                Vector2 s = toScreen * corner;
-                rect = rect is { } r ? r.Expand(s) : new Rect2(s, Vector2.Zero);
+                Vector2 onScreen = toScreen * corner;
+                rect = rect is { } soFar ? soFar.Expand(onScreen) : new Rect2(onScreen, Vector2.Zero);
             }
         }
 
