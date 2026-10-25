@@ -78,8 +78,9 @@ public partial class SelectionController : Node
         AddChild(layer);
 
         // Main moves the party members into the zone in its own _Ready, which runs after this one, so the Party node
-        // still holds them here.
+        // still holds them here. Only the first Core.Party.Cap get a portrait slot; Main quits on more.
         PortraitSlots = Party.GetChildren()
+            .Take(Core.Party.Cap)
             .Select(partyMember => partyMember.GetNode<PlayerControl>("PlayerControl"))
             .ToArray();
         _model = new SelectionModel(PortraitSlots.Select(partyMember => partyMember.PartyMemberId).ToArray());
@@ -95,8 +96,7 @@ public partial class SelectionController : Node
     /// Selects the party member in a portrait slot (1 to 4), or with shift toggles them. A slot with no party member
     /// changes nothing. Shared by the number keys and the portraits.
     /// </summary>
-    public void SelectSlot(int slot, bool shift) =>
-        Apply(_model.SlotSelect(new SlotSelectEvent(slot, shift)), PartyMembers());
+    public void SelectSlot(SlotSelectEvent slot) => Apply(_model.SlotSelect(slot), PartyMembers());
 
     /// <summary>Selects every party member.</summary>
     public void SelectAll() => Apply(_model.SelectAll(), PartyMembers());
@@ -167,7 +167,7 @@ public partial class SelectionController : Node
         {
             if (key.IsActionPressed($"select_slot_{slot}"))
             {
-                SelectSlot(slot, key.ShiftPressed);
+                SelectSlot(new SlotSelectEvent(slot, key.ShiftPressed));
                 GetViewport().SetInputAsHandled();
                 return;
             }

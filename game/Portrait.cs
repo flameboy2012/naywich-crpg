@@ -1,4 +1,5 @@
 using System;
+using Crpg.Core.Selection;
 using Godot;
 using GodotMouseButton = Godot.MouseButton;
 
@@ -22,8 +23,8 @@ public partial class Portrait : Panel
     /// <summary>The party member's tint, which fills the panel.</summary>
     public Color Tint { get; init; } = Colors.White;
 
-    /// <summary>A left click, with whether shift was held.</summary>
-    public event Action<int, bool>? Clicked;
+    /// <summary>A left click: this portrait's slot, with whether shift was held.</summary>
+    public event Action<SlotSelectEvent>? Clicked;
 
     /// <summary>A left double-click.</summary>
     public event Action<int>? DoubleClicked;
@@ -75,7 +76,7 @@ public partial class Portrait : Panel
             }
             else
             {
-                Clicked?.Invoke(Slot, button.ShiftPressed);
+                Clicked?.Invoke(new SlotSelectEvent(Slot, button.ShiftPressed));
             }
         }
 

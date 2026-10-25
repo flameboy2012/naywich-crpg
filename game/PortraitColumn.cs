@@ -35,14 +35,16 @@ public partial class PortraitColumn : VBoxContainer
         AddThemeConstantOverride("separation", 8);
 
         // SelectionController comes before the UI in Main, so its _Ready has already read the portrait slot order.
-        int slot = 1;
-        foreach (PlayerControl partyMember in SelectionController.PortraitSlots)
+        IReadOnlyList<PlayerControl> partyMembers = SelectionController.PortraitSlots;
+        for (int i = 0; i < partyMembers.Count; i++)
         {
+            PlayerControl partyMember = partyMembers[i];
+            int slot = i + 1;
             var portrait = new Portrait
             {
-                Slot = slot++, Tint = partyMember.Tint, CustomMinimumSize = PortraitSize, Name = $"Portrait{slot - 1}",
+                Slot = slot, Tint = partyMember.Tint, CustomMinimumSize = PortraitSize, Name = $"Portrait{slot}",
             };
-            portrait.Clicked += (clicked, shift) => SelectionController.SelectSlot(clicked, shift);
+            portrait.Clicked += SelectionController.SelectSlot;
             portrait.DoubleClicked += OnDoubleClicked;
             AddChild(portrait);
             _portraits.Add((portrait, partyMember));
@@ -56,7 +58,7 @@ public partial class PortraitColumn : VBoxContainer
     /// <summary>Selects only the party member in the slot, then centres the camera on them, clamped.</summary>
     private void OnDoubleClicked(int slot)
     {
-        SelectionController.SelectSlot(slot, shift: false);
+        SelectionController.SelectSlot(new SlotSelectEvent(slot));
         CameraRig.CentreOn(_portraits[slot - 1].PartyMember.GlobalPosition);
     }
 
